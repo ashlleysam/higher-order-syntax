@@ -3,11 +3,8 @@
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd)
 open import Data.List
 open import Data.Nat
-open import Data.Vec using (Vec; []; _∷_)
-open import Data.Maybe
 open import Data.Sum renaming (inj₁ to inl; inj₂ to inr)
 open import Relation.Nullary
-open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality
 open import Function
 
@@ -212,23 +209,23 @@ runFor (suc gas) e with progress e
 ... | e'' , inr (n , e'⇒e'' , e''-Value) = e'' , inr (suc n , e⇒e' ∷ e'⇒e'' , e''-Value)
 
 -- idFunTy := ∀X.X⇒X
-idFunTy : Typ []
+idFunTy : ∀{Γ} → Typ Γ
 idFunTy = AllTy (ArrowTy (var V0) (var V0))
 
 -- idFun : idFunTy := ΛX.λx:X.x
-idFun : Tm [] [] idFunTy
+idFun : ∀{Γ Δ} → Tm Γ Δ idFunTy
 idFun = AbsTm (LamTm (var1 V0))
 
 -- Nat := ∀X.X⇒(X⇒X)⇒X
-Nat : Typ []
+Nat : ∀{Γ} → Typ Γ
 Nat = AllTy (ArrowTy (var V0) (ArrowTy (ArrowTy (var V0) (var V0)) (var V0)))
 
 -- Zero : Nat := ΛX.λz:X.λs:X⇒X.z
-Zero : Tm [] [] Nat
-Zero = AbsTm (LamTm (LamTm ((var1 (VS V0)))))
+Zero : ∀{Γ Δ} → Tm Γ Δ Nat
+Zero = AbsTm (LamTm (LamTm (var1 (VS V0))))
 
 -- Zero [Nat] Zero (idFun [Nat]) : Nat
-alsoZero : Tm [] [] Nat
+alsoZero : ∀{Γ Δ} → Tm Γ Δ Nat
 alsoZero = AppTm (AppTm (AppTyTm Zero Nat) Zero) (AppTyTm idFun Nat)
 
 {-
@@ -242,5 +239,26 @@ Zero [Nat] Zero (idFun [Nat])
 ⇒
 Zero
 -}
-test : runFor 3 alsoZero .fst ≡ Zero
-test = refl
+_ : runFor 3 alsoZero .fst ≡ Zero
+_ = refl
+
+-- Suc : Nat⇒Nat := λn:Nat.ΛX.λz:X.λs:X⇒X.s (n [X] z s)
+Suc : ∀{Γ Δ} → Tm Γ Δ (ArrowTy Nat Nat)
+Suc = LamTm (AbsTm (LamTm (LamTm (AppTm (var1 V0) (
+  AppTm (var1 V0) (AppTm (AppTm (AppTyTm (var1 (VS (VS V0))) (var V0)) (var1 (VS V0))) (var1 V0)))))))
+
+-- [n]
+fromℕ : ∀{Γ Δ} → ℕ → Tm Γ Δ Nat
+fromℕ zero = Zero
+fromℕ (suc n) = AppTm Suc (fromℕ n)
+
+-- add : Nat⇒Nat⇒Nat := λm:Nat.λn:Nat.m [Nat] n Suc
+add : ∀{Γ Δ} → Tm Γ Δ (ArrowTy Nat (ArrowTy Nat Nat))
+add = LamTm (LamTm (AppTm (AppTm (AppTyTm (var1 (VS V0)) Nat) (var1 V0)) Suc))
+
+{-
+Because this is a Church encoding (and we don't reduce under binders),
+you don't necessarily get on-the-nose equalities!
+-}
+_ : runFor 7 (AppTm (AppTm add (fromℕ 2)) (fromℕ 3)) .fst ≢ runFor 1 (fromℕ 5) .fst
+_ = λ ()

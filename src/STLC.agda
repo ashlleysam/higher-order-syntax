@@ -2,13 +2,9 @@
 
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd)
 open import Data.Nat
-open import Data.Fin
 open import Data.List
-open import Data.Vec using (Vec; []; _∷_)
-open import Data.Maybe
 open import Data.Sum renaming (inj₁ to inl; inj₂ to inr)
 open import Relation.Nullary
-open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality
 open import Function
 
@@ -150,3 +146,15 @@ runFor (suc gas) e with progress e
 ... | inr (e' , e⇒e') with runFor gas e'
 ... | e'' , inl e'⇒*e'' = e'' , inl (e⇒e' ∷ e'⇒*e'') 
 ... | e'' , inr (n , e'⇒e'' , e''-Value) = e'' , inr (suc n , e⇒e' ∷ e'⇒e'' , e''-Value)
+
+-- [n]
+fromℕ : ∀{Γ} → ℕ → Tm Γ Nat
+fromℕ zero = ZeroTm
+fromℕ (suc n) = SucTm (fromℕ n)
+
+-- add : Nat⇒Nat⇒Nat := λm:Nat.λn:Nat.
+add : ∀{Γ} → Tm Γ (Arrow Nat (Arrow Nat Nat))
+add = LamTm (LamTm (NatRecTm (var V0) (LamTm (SucTm (var V0))) (var (VS V0))))
+
+_ : runFor 13 (AppTm (AppTm add (fromℕ 5)) (fromℕ 7)) .fst ≡ fromℕ 12
+_ = refl
