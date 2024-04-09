@@ -42,10 +42,10 @@ data Tm Γ where
 infixr 5 _∷_
 data TmVec Γ where
   [] : TmVec Γ []
-  _∷_ : ∀{Δ t Δts} →
+  _∷_ : ∀{Δ t Σ} →
         (e : Tm (Δ ++ Γ) t) →
-        (es : TmVec Γ Δts) →
-        TmVec Γ ((Δ , t) ∷ Δts)
+        (es : TmVec Γ Σ) →
+        TmVec Γ ((Δ , t) ∷ Σ)
 
 --------------
 -- RENAMING --
@@ -115,26 +115,26 @@ renVar (Drop ξ) x = VS (renVar ξ x)
 
 -- Term renaming
 ren : ∀{Γ1 Γ2 t} → Ren Γ1 Γ2 → Tm Γ1 t → Tm Γ2 t
-renVec : ∀{Γ1 Γ2 Δts} → Ren Γ1 Γ2 → TmVec Γ1 Δts → TmVec Γ2 Δts
+renVec : ∀{Γ1 Γ2 Σ} → Ren Γ1 Γ2 → TmVec Γ1 Σ → TmVec Γ2 Σ
 
 ren ξ (var x) = var (renVar ξ x)
 ren ξ (constr s ts) = constr s (renVec ξ ts)
 
 renVec ξ [] = []
-renVec {Δts = (Δ , t) ∷ Δts} ξ (e ∷ es) = ren (Keep* ξ Δ) e ∷ renVec ξ es
+renVec {Σ = (Δ , t) ∷ Σ} ξ (e ∷ es) = ren (Keep* ξ Δ) e ∷ renVec ξ es
 
 renVarId : ∀{Γ t} (x : Var Γ t) → renVar IdRen x ≡ x
 renVarId V0 = refl
 renVarId (VS x) = cong VS (renVarId x)
 
 renId : ∀{Γ t} (t : Tm Γ t) → ren IdRen t ≡ t
-renVecId : ∀{Γ Δts} (ts : TmVec Γ Δts) → renVec IdRen ts ≡ ts
+renVecId : ∀{Γ Σ} (ts : TmVec Γ Σ) → renVec IdRen ts ≡ ts
 
 renId (var x) = cong var (renVarId x)
 renId (constr s ts) = cong (constr s) (renVecId ts)
 
 renVecId [] = refl
-renVecId {Δts = (Δ , t) ∷ Δts} (e ∷ es) =
+renVecId {Σ = (Δ , t) ∷ Σ} (e ∷ es) =
   cong₂ _∷_ (cong (flip ren e) (KeepId* Δ) ∙ renId e) (renVecId es)
 
 renVar• : ∀{Γ1 Γ2 Γ3 t} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
@@ -147,14 +147,14 @@ renVar• (Drop ξ1) ξ2 x = cong VS (renVar• ξ1 ξ2 x)
 
 ren• : ∀{Γ1 Γ2 Γ3 t} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
        (e : Tm Γ1 t) → ren (ξ1 • ξ2) e ≡ ren ξ1 (ren ξ2 e)
-renVec• : ∀{Γ1 Γ2 Γ3 Δts} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
-          (es : TmVec Γ1 Δts) → renVec (ξ1 • ξ2) es ≡ renVec ξ1 (renVec ξ2 es)
+renVec• : ∀{Γ1 Γ2 Γ3 Σ} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
+          (es : TmVec Γ1 Σ) → renVec (ξ1 • ξ2) es ≡ renVec ξ1 (renVec ξ2 es)
 
 ren• ξ1 ξ2 (var x) = cong var (renVar• ξ1 ξ2 x)
 ren• ξ1 ξ2 (constr c es) = cong (constr c) (renVec• ξ1 ξ2 es)
 
 renVec• ξ1 ξ2 [] = refl
-renVec• {Δts = (Δ , t) ∷ Δts} ξ1 ξ2 (e ∷ es) =
+renVec• {Σ = (Δ , t) ∷ Σ} ξ1 ξ2 (e ∷ es) =
   cong₂ _∷_
     (ren (Keep* (ξ1 • ξ2) Δ) e
        ≡⟨ cong (flip ren e) (Keep*•Keep* Δ) ⟩
@@ -326,13 +326,13 @@ subVar (σ ▸ e) (VS x) = subVar σ x
 
 -- Term substitution
 sub : ∀{Γ1 Γ2 t} → Sub Γ1 Γ2 → Tm Γ1 t → Tm Γ2 t
-subVec : ∀{Γ1 Γ2 Δts} → Sub Γ1 Γ2 → TmVec Γ1 Δts → TmVec Γ2 Δts
+subVec : ∀{Γ1 Γ2 Σ} → Sub Γ1 Γ2 → TmVec Γ1 Σ → TmVec Γ2 Σ
 
 sub σ (var x) = subVar σ x
 sub σ (constr c es) = constr c (subVec σ es)
 
 subVec σ [] = []
-subVec {Δts = (Δ , t) ∷ Δts} σ (e ∷ es) = sub (KeepSub* σ Δ) e ∷ subVec σ es
+subVec {Σ = (Δ , t) ∷ Σ} σ (e ∷ es) = sub (KeepSub* σ Δ) e ∷ subVec σ es
 
 subVar•◦ : ∀{Γ1 Γ2 Γ3 t} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
           (x : Var Γ1 t) → subVar (ξ •◦ σ) x ≡ ren ξ (subVar σ x)
@@ -341,14 +341,14 @@ subVar•◦ ξ (σ ▸ e) (VS x) = subVar•◦ ξ σ x
 
 sub•◦ : ∀{Γ1 Γ2 Γ3 t} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
         (e : Tm Γ1 t) → sub (ξ •◦ σ) e ≡ ren ξ (sub σ e)
-subVec•◦ : ∀{Γ1 Γ2 Γ3 Δts} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
-         (es : TmVec Γ1 Δts) → subVec (ξ •◦ σ) es ≡ renVec ξ (subVec σ es)
+subVec•◦ : ∀{Γ1 Γ2 Γ3 Σ} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
+         (es : TmVec Γ1 Σ) → subVec (ξ •◦ σ) es ≡ renVec ξ (subVec σ es)
 
 sub•◦ ξ σ (var x) = subVar•◦ ξ σ x
 sub•◦ ξ σ (constr c es) = cong (constr c) (subVec•◦ ξ σ es)
 
 subVec•◦ ξ σ [] = refl
-subVec•◦ {Δts = (Δ , t) ∷ Δts} ξ σ (e ∷ es) =
+subVec•◦ {Σ = (Δ , t) ∷ Σ} ξ σ (e ∷ es) =
   cong₂ _∷_
     (sub (KeepSub* (ξ •◦ σ) Δ) e
       ≡⟨ cong (flip sub e) (Keep•◦* ξ σ Δ) ⟩
@@ -372,13 +372,13 @@ subVarι (Drop ξ) x =
   var (VS (renVar ξ x)) ∎
 
 subι : ∀{Γ1 Γ2 t} (ξ : Ren Γ1 Γ2) (e : Tm Γ1 t) → sub (ι ξ) e ≡ ren ξ e
-subVecι : ∀{Γ1 Γ2 Δts} (ξ : Ren Γ1 Γ2) (es : TmVec Γ1 Δts) → subVec (ι ξ) es ≡ renVec ξ es
+subVecι : ∀{Γ1 Γ2 Σ} (ξ : Ren Γ1 Γ2) (es : TmVec Γ1 Σ) → subVec (ι ξ) es ≡ renVec ξ es
 
 subι ξ (var x) = subVarι ξ x
 subι ξ (constr c es) = cong (constr c) (subVecι ξ es)
 
 subVecι ξ [] = refl
-subVecι {Δts = (Δ , t) ∷ Δts} ξ (e ∷ es) =
+subVecι {Σ = (Δ , t) ∷ Σ} ξ (e ∷ es) =
   cong₂ _∷_
     (sub (KeepSub* (ι ξ) Δ) e
       ≡⟨ cong (flip sub e) (Keepι* ξ Δ) ⟩
@@ -393,7 +393,7 @@ subVarId x = subVarι IdRen x ∙ cong var (renVarId x)
 subId : ∀{Γ t} (e : Tm Γ t) → sub IdSub e ≡ e
 subId e = subι IdRen e ∙ renId e
 
-subVecId : ∀{Γ Δts} (es : TmVec Γ Δts) → subVec IdSub es ≡ es
+subVecId : ∀{Γ Σ} (es : TmVec Γ Σ) → subVec IdSub es ≡ es
 subVecId es = subVecι IdRen es ∙ renVecId es
 
 infixr 9 _◦•_ 
@@ -468,14 +468,14 @@ subVar◦• (σ ▸ e) (Drop ξ) x = subVar◦• σ ξ x
 
 sub◦• : ∀{Γ1 Γ2 Γ3 t} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
         (e : Tm Γ1 t) → sub (σ ◦• ξ) e ≡ sub σ (ren ξ e)
-subVec◦• : ∀{Γ1 Γ2 Γ3 Δts} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
-          (es : TmVec Γ1 Δts) → subVec (σ ◦• ξ) es ≡ subVec σ (renVec ξ es)
+subVec◦• : ∀{Γ1 Γ2 Γ3 Σ} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
+          (es : TmVec Γ1 Σ) → subVec (σ ◦• ξ) es ≡ subVec σ (renVec ξ es)
 
 sub◦• σ ξ (var x) = subVar◦• σ ξ x
 sub◦• σ ξ (constr c es) = cong (constr c) (subVec◦• σ ξ es)
 
 subVec◦• ξ σ [] = refl
-subVec◦• {Δts = (Δ , t) ∷ Δts} ξ σ (e ∷ es) =
+subVec◦• {Σ = (Δ , t) ∷ Σ} ξ σ (e ∷ es) =
   cong₂ _∷_
     (sub (KeepSub* (ξ ◦• σ) Δ) e
       ≡⟨ cong (flip sub e) (Keep*◦• ξ σ Δ) ⟩
@@ -612,14 +612,14 @@ subVar◦ σ1 (σ2 ▸ e) (VS x) = subVar◦ σ1 σ2 x
 
 sub◦ : ∀{Γ1 Γ2 Γ3 t} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
        sub {t = t} (σ1 ◦ σ2) ≈ sub σ1 ∘ sub σ2
-subVec◦ : ∀{Γ1 Γ2 Γ3 Δts} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-       subVec {Δts = Δts} (σ1 ◦ σ2) ≈ subVec σ1 ∘ subVec σ2
+subVec◦ : ∀{Γ1 Γ2 Γ3 Σ} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
+       subVec {Σ = Σ} (σ1 ◦ σ2) ≈ subVec σ1 ∘ subVec σ2
 
 sub◦ σ1 σ2 (var x) = subVar◦ σ1 σ2 x
 sub◦ σ1 σ2 (constr c es) = cong (constr c) (subVec◦ σ1 σ2 es)
  
 subVec◦ σ1 σ2 [] = refl 
-subVec◦ {Δts = (Δ , t) ∷ Δts} σ1 σ2 (e ∷ es) =
+subVec◦ {Σ = (Δ , t) ∷ Σ} σ1 σ2 (e ∷ es) =
   cong₂ _∷_
     (sub (KeepSub* (σ1 ◦ σ2) Δ) e
       ≡⟨ cong (flip sub e) (Keep*◦ σ1 σ2 Δ) ⟩
