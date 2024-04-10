@@ -1,8 +1,9 @@
 {-# OPTIONS --safe #-}
 
 open import Level renaming (_⊔_ to ℓ-max; suc to ℓ-suc; zero to ℓ-zero)
-open import Data.Product renaming (proj₁ to fst; proj₂ to snd)
+open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
 open import Data.List
+open import Data.Unit
 open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
@@ -627,3 +628,110 @@ subVec◦ {Σ = (Δ , t) ∷ Σ} σ1 σ2 (e ∷ es) =
       ≡⟨ sub◦ (KeepSub* σ1 Δ) (KeepSub* σ2 Δ) e ⟩ 
     sub (KeepSub* σ1 Δ) (sub (KeepSub* σ2 Δ) e) ∎)
     (subVec◦ σ1 σ2 es)
+
+----------------
+-- META-TERMS --
+----------------
+
+MTyp = Ctx × Typ
+
+MCtx : Set
+MCtx = List MTyp
+
+data MVar : MCtx → MTyp → Set where
+  MV0 : ∀{Γ t} → MVar (t ∷ Γ) t
+  MVS : ∀{Γ s t} (x : MVar Γ t) → MVar (s ∷ Γ) t
+
+data MTm (Γ : MCtx) : MTyp → Set
+data MTmVec (Γ : MCtx) : List (Ctx × Typ) → Set
+
+data MTm Γ where
+  mvar : ∀{t} (x : MVar Γ t) → MTm Γ t
+  mconstr : (c : Shape) (es : MTmVec Γ (Pos c .fst)) → MTm Γ ([] , Pos c .snd)
+  inst : ∀{Δ s t} (e : MTm Γ ((s ∷ Δ) , t)) (v : MTm Γ ([] , s)) → MTm Γ (Δ , t)
+
+_⟨_⟩ : ∀{Γ Δ s t} (e : MTm Γ ((s ∷ Δ) , t)) (v : MTm Γ ([] , s)) → MTm Γ (Δ , t)
+_⟨_⟩ = inst
+
+data MTmVec Γ where
+  [] : MTmVec Γ []
+  _∷_ : ∀{Δ t Σ} →
+        (e : MTm (map (λ x → [] , x) Δ ++ Γ) ([] , t)) →
+        (es : MTmVec Γ Σ) →
+        MTmVec Γ ((Δ , t) ∷ Σ)
+
+
+tmVec++ : ∀{Σ Γ} (η : TmVec Γ Σ) (Δ : Ctx) → TmVec (Δ ++ Γ) (map (λ x → [] , x) Δ ++ Σ)
+tmVec++ η [] = η
+tmVec++ η (t ∷ Δ) = var V0 ∷ renVec (Drop IdRen) (tmVec++ η Δ)
+
+tmVec++∘subVec : ∀{Σ Γ1 Γ2} (η : TmVec Γ1 Σ) (Δ : Ctx) (σ : Sub Γ1 Γ2) →
+             tmVec++ (subVec σ η) Δ ≡ subVec (KeepSub* σ Δ) (tmVec++ η Δ)
+tmVec++∘subVec η [] σ = refl
+tmVec++∘subVec η (t ∷ Δ) σ = cong (var V0 ∷_) (
+  renVec (Drop IdRen) (tmVec++ (subVec σ η) Δ)
+    ≡⟨ cong (renVec (Drop IdRen) ) (tmVec++∘subVec η Δ σ) ⟩
+  renVec (Drop IdRen) (subVec (KeepSub* σ Δ) (tmVec++ η Δ))
+    ≡⟨ sym (subVec•◦ (Drop IdRen) ((KeepSub* σ Δ)) (tmVec++ η Δ)) ⟩
+  subVec (DropSub (KeepSub* σ Δ)) (tmVec++ η Δ)
+    ≡⟨ cong (λ x → subVec x (tmVec++ η Δ)) (sym (◦•Id (DropSub (KeepSub* σ Δ)))) ⟩
+  subVec (DropSub (KeepSub* σ Δ) ◦• IdRen) (tmVec++ η Δ)
+    ≡⟨ subVec◦• (KeepSub (KeepSub* σ Δ)) (Drop IdRen) (tmVec++ η Δ) ⟩
+  subVec (KeepSub (KeepSub* σ Δ)) (renVec (Drop IdRen) (tmVec++ η Δ)) ∎)
+
+interpVar : ∀{Σ Δ Γ t} → MVar Σ (Δ , t) → TmVec Γ Σ → Sub (Δ ++ Γ) Γ → Tm Γ t
+interpVar MV0 (e ∷ η) σ = sub σ e
+interpVar (MVS x) (e ∷ η) σ = interpVar x η σ
+
+interpTm : ∀{Σ Δ Γ t} → MTm Σ (Δ , t) → TmVec Γ Σ → Sub (Δ ++ Γ) Γ → Tm Γ t
+interpVec : ∀{Σ Δ Γ} → MTmVec Σ Δ → TmVec Γ Σ → TmVec Γ Δ
+
+interpTm (mvar x) η σ = interpVar x η σ
+interpTm (mconstr c es) η σ = constr c (interpVec es η)
+interpTm (inst e v) η σ = interpTm e η (σ ▸ interpTm v η IdSub)
+
+interpVec [] η = []
+interpVec (_∷_ {Δ} e es) η =
+  interpTm e (tmVec++ η Δ) IdSub ∷
+  interpVec es η
+
+interpVarSub : ∀{Σ Δ Γ1 Γ2 t} (x : MVar Σ (Δ , t)) (η : TmVec Γ1 Σ) (σ : Sub Γ1 Γ2)
+               (σ1 : Sub (Δ ++ Γ2) Γ2) (σ2 : Sub (Δ ++ Γ1) Γ1) →
+               σ1 ◦ KeepSub* σ Δ ≡ σ ◦ σ2 →
+               interpVar x (subVec σ η) σ1 ≡ sub σ (interpVar x η σ2)
+interpVarSub {Δ = Δ} MV0 (e ∷ η) σ σ1 σ2 eq =
+  sub σ1 (sub (KeepSub* σ Δ) e) ≡⟨ sym (sub◦ σ1 (KeepSub* σ Δ) e) ⟩
+  sub (σ1 ◦ KeepSub* σ Δ) e     ≡⟨ cong (flip sub e) eq ⟩
+  sub (σ ◦ σ2) e                ≡⟨ sub◦ σ σ2 e ⟩
+  sub σ (sub σ2 e)              ∎
+interpVarSub (MVS x) (e ∷ η) σ σ1 σ2 eq = interpVarSub x η σ σ1 σ2 eq
+
+interpTmSub : ∀{Σ Δ Γ1 Γ2 t} (e : MTm Σ (Δ , t)) (η : TmVec Γ1 Σ) (σ : Sub Γ1 Γ2)
+               (σ1 : Sub (Δ ++ Γ2) Γ2) (σ2 : Sub (Δ ++ Γ1) Γ1) →
+               σ1 ◦ KeepSub* σ Δ ≡ σ ◦ σ2 →
+               interpTm e (subVec σ η) σ1 ≡ sub σ (interpTm e η σ2)
+interpVecSub : ∀{Σ Γ1 Γ2 Δ} (es : MTmVec Σ Δ) (η : TmVec Γ1 Σ) (σ : Sub Γ1 Γ2) →
+               interpVec es (subVec σ η) ≡ subVec σ (interpVec es η)
+
+interpTmSub (mvar x) η σ σ1 σ2 eq = interpVarSub x η σ σ1 σ2 eq
+interpTmSub (mconstr c es) η σ σ1 σ2 eq = cong (constr c) (interpVecSub es η σ)
+interpTmSub (inst {Δ} e v) η σ σ1 σ2 eq =
+  interpTmSub e η σ
+    (σ1 ▸ interpTm v (subVec σ η) IdSub)
+    (σ2 ▸ interpTm v η IdSub)
+    (cong₂ _▸_
+      ((σ1 ▸ interpTm v (subVec σ η) IdSub) ◦ Drop IdRen •◦ KeepSub* σ Δ
+          ≡⟨ ◦•◦ (σ1 ▸ interpTm v (subVec σ η) IdSub) (Drop IdRen) (KeepSub* σ Δ) ⟩
+       (σ1 ◦• IdRen) ◦ KeepSub* σ Δ
+          ≡⟨ cong (_◦ KeepSub* σ Δ) (◦•Id σ1) ⟩
+        σ1 ◦ KeepSub* σ Δ
+          ≡⟨ eq ⟩
+        σ ◦ σ2 ∎)
+      (interpTmSub v η σ IdSub IdSub (Id◦ σ ∙ sym (◦Id σ))))
+
+interpVecSub [] η σ = refl
+interpVecSub (_∷_ {Δ} e es) η σ =
+  cong₂ _∷_
+    (cong (λ x → interpTm e x IdSub) (tmVec++∘subVec η Δ σ)
+      ∙ interpTmSub e (tmVec++ η Δ) (KeepSub* σ Δ) IdSub IdSub (Id◦ (KeepSub* σ Δ) ∙ sym (◦Id (KeepSub* σ Δ))))
+    (interpVecSub es η σ)

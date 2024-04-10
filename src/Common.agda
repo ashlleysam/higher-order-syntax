@@ -1,6 +1,7 @@
 {-# OPTIONS --safe #-}
 
 open import Level renaming (_⊔_ to ℓ-max; suc to ℓ-suc; zero to ℓ-zero)
+open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
 open import Function
@@ -14,6 +15,16 @@ infixr 30 _∙_
 _∙_ : ∀{a} {A : Set a} {x y z : A} →
       x ≡ y → y ≡ z → x ≡ z
 p ∙ q = trans p q
+
+-- Explicit uniqueness of identity proofs/Axiom-K lemma
+UIP : ∀{a} {A : Set a} {x y : A}
+      (p q : x ≡ y) → p ≡ q
+UIP refl refl = refl
+
+cong-sym : ∀{a b} {A : Set a} {B : Set b} {x y : A}
+           (f : A → B) (p : x ≡ y) →
+           cong f (sym p) ≡ sym (cong f p)
+cong-sym f refl = refl
 
 -- Custom equational reasoning for functions
 module FunExt {a b} {A : Set a} {B : A → Set b} where
@@ -48,5 +59,4 @@ module FunExt {a b} {A : Set a} {B : A → Set b} where
   syntax step-≈  x y≡z x≡y = x ≈⟨  x≡y ⟩ y≡z
   syntax step-≈˘ x y≡z y≡x = x ≈˘⟨ y≡x ⟩ y≡z
 
-  
 open FunExt public
