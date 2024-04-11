@@ -1,13 +1,16 @@
 {-# OPTIONS --safe #-}
 
 open import Level renaming (_⊔_ to ℓ-max; suc to ℓ-suc; zero to ℓ-zero)
-open import Data.Product renaming (proj₁ to fst; proj₂ to snd)
+open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
+open import Data.Product.Properties
 open import Data.Fin
 open import Data.List
+open import Data.List.Properties
 open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
 open import Function
+open import Function.Bundles
 
 open ≡-Reasoning
 
@@ -53,11 +56,16 @@ renCtx1• : ∀{Γ1 Γ2 Γ3} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
 renCtx1• ξ1 ξ2 [] = refl
 renCtx1• ξ1 ξ2 (t ∷ Δ) = cong₂ _∷_ (ren• ξ1 ξ2 t) (renCtx1• ξ1 ξ2 Δ)
 
-renVecCtx : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) →
-            List (Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ1) × Typ (Γ' ++ Γ1))) →
-            List (Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ2) × Typ (Γ' ++ Γ2)))
-renVecCtx ξ [] = []
-renVecCtx ξ ((Γ' , Δ , t) ∷ ts) = (Γ' , renCtx1 (Keep* ξ Γ') Δ , ren (Keep* ξ Γ') t) ∷ renVecCtx ξ ts
+Binder : Ctx → Set
+Binder Γ = Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ) × Typ (Γ' ++ Γ))
+
+renBinder : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → Binder Γ1 → Binder Γ2
+fst (renBinder ξ (Γ' , Δ , t)) = Γ'
+fst (snd (renBinder ξ (Γ' , Δ , t))) = renCtx1 (Keep* ξ Γ') Δ
+snd (snd (renBinder ξ (Γ' , Δ , t))) = ren (Keep* ξ Γ') t
+
+renBinders : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → List (Binder Γ1) → List (Binder Γ2)
+renBinders ξ = map (renBinder ξ)
 
 subCtx1 : ∀{Γ1 Γ2} → Sub Γ1 Γ2 → Ctx1 Γ1 → Ctx1 Γ2
 subCtx1 σ [] = []
@@ -82,11 +90,64 @@ subCtx1ι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) →
 subCtx1ι ξ [] = refl
 subCtx1ι ξ (t ∷ Δ) = cong₂ _∷_ (subι ξ t) (subCtx1ι ξ Δ)
 
-subVecCtx : ∀{Γ1 Γ2} (σ : Sub Γ1 Γ2) →
-            List (Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ1) × Typ (Γ' ++ Γ1))) →
-            List (Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ2) × Typ (Γ' ++ Γ2)))
-subVecCtx σ [] = []
-subVecCtx σ ((Γ' , Δ , t) ∷ ts) = (Γ' , subCtx1 (KeepSub* σ Γ') Δ , sub (KeepSub* σ Γ') t) ∷ subVecCtx σ ts
+subBinder : ∀{Γ1 Γ2} (σ : Sub Γ1 Γ2) → Binder Γ1 → Binder Γ2
+fst (subBinder σ (Γ' , Δ , t)) = Γ'
+fst (snd (subBinder σ (Γ' , Δ , t))) = subCtx1 (KeepSub* σ Γ') Δ
+snd (snd (subBinder σ (Γ' , Δ , t))) = sub (KeepSub* σ Γ') t
+
+subBinderι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → subBinder (ι ξ) ≗ renBinder ξ
+subBinderι ξ (Γ , Δ , t) = Σ-≡,≡↔≡ .Inverse.f (
+  refl ,
+  ×-≡,≡↔≡ .Inverse.f (
+    (subCtx1 (KeepSub* (ι ξ) Γ) Δ
+      ≡⟨ cong (λ x → subCtx1 x Δ) (Keepι* ξ Γ) ⟩
+    subCtx1 (ι (Keep* ξ Γ)) Δ
+      ≡⟨ subCtx1ι (Keep* ξ Γ) Δ ⟩
+    renCtx1 (Keep* ξ Γ) Δ ∎) ,
+    (sub (KeepSub* (ι ξ) Γ) t
+      ≡⟨ cong (λ x → sub x t) (Keepι* ξ Γ) ⟩
+    sub (ι (Keep* ξ Γ)) t
+      ≡⟨ subι (Keep* ξ Γ) t ⟩
+    ren (Keep* ξ Γ) t ∎)))
+
+subBinders : ∀{Γ1 Γ2} (σ : Sub Γ1 Γ2) → List (Binder Γ1) → List (Binder Γ2)
+subBinders σ = map (subBinder σ)
+
+subBindersι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → subBinders (ι ξ) ≗ renBinders ξ
+subBindersι ξ = map-cong (subBinderι ξ)
+
+MBinder : MCtx → Set
+MBinder Γ = Σ[ Γ' ∈ Ctx ] (List (MTm (map (λ x → [] , x) Γ' ++ Γ) ([] , *)) × MTm (map (λ x → [] , x) Γ' ++ Γ) ([] , *))
+
+interpBinders : ∀{Σ} (Γ : Ctx) → TyVec Γ Σ → MBinder Σ → Binder Γ
+fst (interpBinders Γ η (Γ' , Δ , t)) = Γ'
+fst (snd (interpBinders Γ η (Γ' , Δ , t))) = map (λ x → interpTm x (tmVec++ η Γ') IdSub) Δ
+snd (snd (interpBinders Γ η (Γ' , Δ , t))) = interpTm t (tmVec++ η Γ') IdSub
+
+map-interpTm : ∀{Γ1 Γ2 Σ} (σ : Sub Γ1 Γ2) (η : TyVec Γ1 Σ) (Γ : Ctx) →
+                (Δ : List (MTm (map (λ x → [] , x) Γ ++ Σ) ([] , *))) →
+                map (λ x → interpTm x (tmVec++ (subVec σ η) Γ) IdSub) Δ ≡
+                subCtx1 (KeepSub* σ Γ) (map (λ x → interpTm x (tmVec++ η Γ) IdSub) Δ)
+map-interpTm σ η Γ [] = refl
+map-interpTm σ η Γ (t ∷ Δ) = cong₂ _∷_
+  (interpTm t (tmVec++ (subVec σ η) Γ) IdSub
+    ≡⟨ cong (λ x → interpTm t x IdSub) (tmVec++∘subVec η Γ σ) ⟩
+  interpTm t (subVec (KeepSub* σ Γ) (tmVec++ η Γ)) IdSub
+    ≡⟨ interpTmSub t (tmVec++ η Γ) (KeepSub* σ Γ) IdSub IdSub (Id◦ _ ∙ sym (◦Id _)) ⟩
+   sub (KeepSub* σ Γ) (interpTm t (tmVec++ η Γ) IdSub) ∎)
+  (map-interpTm σ η Γ Δ)
+
+interpBinders∘subVec : ∀{Γ1 Γ2 Σ} (σ : Sub Γ1 Γ2) (η : TyVec Γ1 Σ) →
+                       interpBinders Γ2 (subVec σ η) ≗ subBinder σ ∘ interpBinders Γ1 η
+interpBinders∘subVec {Γ1} {Γ2} {Σ} σ η (Γ , Δ , t) = Σ-≡,≡↔≡ .Inverse.f (
+  refl ,
+  ×-≡,≡↔≡ .Inverse.f (
+    map-interpTm σ η Γ Δ ,
+    (interpTm t (tmVec++ (subVec σ η) Γ) IdSub
+      ≡⟨ cong (λ x → interpTm t x IdSub) (tmVec++∘subVec η Γ σ) ⟩
+    interpTm t (subVec (KeepSub* σ Γ) (tmVec++ η Γ)) IdSub
+      ≡⟨ interpTmSub t (tmVec++ η Γ) (KeepSub* σ Γ) IdSub IdSub (Id◦ _ ∙ sym (◦Id _)) ⟩
+    sub (KeepSub* σ Γ) (interpTm t (tmVec++ η Γ) IdSub) ∎)))
 
 module Syntax1
   -- Term constructor shape
@@ -96,15 +157,33 @@ module Syntax1
   -- Term part of constructor signature, which depends on the type part
   (Pos₁ : (s : Shape₁) (Γ : Ctx) → TyVec Γ (Pos₀₁ s) → List (Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ) × Typ (Γ' ++ Γ))) × Typ Γ)
   -- Coherence requirements
-  (renVecPos₁ : ∀{Γ1 Γ2 c} (ξ : Ren Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
-                Pos₁ c Γ2 (renVec ξ ts) .snd ≡ ren ξ (Pos₁ c Γ1 ts .snd))
-  (renVecCtxPos₁ : ∀{Γ1 Γ2 c} (ξ : Ren Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
-                   Pos₁ c Γ2 (renVec ξ ts) .fst ≡ renVecCtx ξ (Pos₁ c Γ1 ts .fst))
   (subVecPos₁ : ∀{Γ1 Γ2 c} (σ : Sub Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
                 Pos₁ c Γ2 (subVec σ ts) .snd ≡ sub σ (Pos₁ c Γ1 ts .snd))
   (subVecCtxPos₁ : ∀{Γ1 Γ2 c} (σ : Sub Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
-                  Pos₁ c Γ2 (subVec σ ts) .fst ≡ subVecCtx σ (Pos₁ c Γ1 ts .fst))
+                  Pos₁ c Γ2 (subVec σ ts) .fst ≡ subBinders σ (Pos₁ c Γ1 ts .fst))
   where
+
+  renVecPos₁ : ∀{Γ1 Γ2 c} (ξ : Ren Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
+                Pos₁ c Γ2 (renVec ξ ts) .snd ≡ ren ξ (Pos₁ c Γ1 ts .snd)
+  renVecPos₁ {Γ1} {Γ2} {s} ξ ts =
+    Pos₁ s Γ2 (renVec ξ ts) .snd
+      ≡⟨ sym (cong (λ x → Pos₁ s Γ2 x .snd) (subVecι ξ ts)) ⟩
+    Pos₁ s Γ2 (subVec (ι ξ) ts) .snd
+      ≡⟨ subVecPos₁ (ι ξ) ts ⟩
+    sub (ι ξ) (Pos₁ s Γ1 ts .snd)
+      ≡⟨ subι ξ  (Pos₁ s Γ1 ts .snd) ⟩
+    ren ξ (Pos₁ s Γ1 ts .snd) ∎
+
+  renVecCtxPos₁ : ∀{Γ1 Γ2 s} (ξ : Ren Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ s)) →
+                  Pos₁ s Γ2 (renVec ξ ts) .fst ≡ renBinders ξ (Pos₁ s Γ1 ts .fst)
+  renVecCtxPos₁ {Γ1} {Γ2} {s} ξ ts =
+    Pos₁ s Γ2 (renVec ξ ts) .fst
+      ≡⟨ cong (λ x → Pos₁ s Γ2 x .fst) (sym (subVecι ξ ts)) ⟩
+    Pos₁ s Γ2 (subVec (ι ξ) ts) .fst
+      ≡⟨ subVecCtxPos₁ (ι ξ) ts ⟩
+    subBinders (ι ξ) (Pos₁ s Γ1 ts .fst)
+      ≡⟨ subBindersι ξ (Pos₁ s Γ1 ts .fst) ⟩
+    renBinders ξ (Pos₁ s Γ1 ts .fst) ∎
 
   -- In-context variables
   data Var1 : (Γ : Ctx) (Δ : Ctx1 Γ) → Typ Γ → Set where
@@ -203,7 +282,7 @@ module Syntax1
 
   -- Rename the types in a term
   ren01 : ∀{Γ1 Γ2 Δ t} (ξ : Ren Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (renCtx1 ξ Δ) (ren ξ t)
-  renVec01 : ∀{Γ1 Γ2 Δ Θ} (ξ : Ren Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (renCtx1 ξ Δ) (renVecCtx ξ Θ)
+  renVec01 : ∀{Γ1 Γ2 Δ Θ} (ξ : Ren Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (renCtx1 ξ Δ) (renBinders ξ Θ)
 
   ren01 ξ (var1 x) = var1 (renVar01 ξ x)
   ren01 {Γ1} {Γ2} {Δ} ξ (constr1 c ts es) =
@@ -301,7 +380,7 @@ module Syntax1
 
   -- Substitute the types in a term
   sub01 : ∀{Γ1 Γ2 Δ t} (σ : Sub Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (subCtx1 σ Δ) (sub σ t)
-  subVec01 : ∀{Γ1 Γ2 Δ Θ} (σ : Sub Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (subCtx1 σ Δ) (subVecCtx σ Θ)
+  subVec01 : ∀{Γ1 Γ2 Δ Θ} (σ : Sub Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (subCtx1 σ Δ) (subBinders σ Θ)
 
   sub01 σ (var1 x) = var1 (subVar01 σ x)
   sub01 {Γ1} {Γ2} {Δ} {t} σ (constr1 c ts es) =

@@ -181,7 +181,6 @@ Extra equalities are used in the following functions to satisfy the
 pattern-matcher and so that subst doesn't have to be used to switch
 between equivalent contexts.
 -}
--- Project a variable of type ℓ.t to a local variable in the projected context
 varProj : ∀{Γ t ℓ} (x : Var Γ (Bnd ℓ t)) → Varₑ (Γ ∣ ℓ) t
 varProj {ℓ = ℓ} V0 with ≡-dec-Loc ℓ ℓ
 ... | yes _ = V0ₑ
