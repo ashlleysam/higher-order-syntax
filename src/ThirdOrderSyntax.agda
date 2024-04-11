@@ -22,98 +22,105 @@ module ThirdOrderSyntax
   -- Kind of types
   (* : Knd)
   -- Type constructor shape
-  (Shape₀ : Set)
+  (TyShape : Set)
   -- Type constructor signature
-  (Pos₀ : Shape₀ → List (List Knd × Knd) × Knd)
+  (TyPos : TyShape → List (List Knd × Knd) × Knd)
   where
 
 -- Use lower syntax as types
-open import SecondOrderSyntax Knd Shape₀ Pos₀ public renaming (Tm to Ty; TmVec to TyVec)
+open import SecondOrderSyntax Knd TyShape TyPos public
+  renaming (Tm to Ty; TmVec to TyVec; Var to TyVar; var to tyVar; constr to tyConstr;
+            Ren to TyRen; IdRen to TyIdRen; Keep* to TyKeep*; Keep*•Drop* to TyKeep*•Drop*;
+            Keep*◦Drop* to TyKeep*◦Drop*; Drop to TyDrop; Drop* to TyDrop*; Drop*• to TyDrop*•;
+            Drop*ι to TyDrop*ι; Drop*◦ to TyDrop*◦; renVar to tyRenVar; ren to tyRen; renVec to tyRenVec;
+            Sub to TySub; _•◦_ to _•◦ₜ_; DropSub to TyDropSub; DropSub* to TyDropSub*;
+            KeepSub to TyKeepSub; KeepSub* to TyKeepSub*; ι to ιₜ; IdSub to TyIdSub; subVec to tySubVec;
+            subVar to tySubVar; sub to tySub)
 
 -- Types of * kind
 Typ : Ctx → Set
 Typ Γ = Ty Γ *
 
 -- Typing contexts and their various operations
-Ctx1 : Ctx → Set
-Ctx1 Γ = List (Typ Γ)
+TyCtx : Ctx → Set
+TyCtx Γ = List (Typ Γ)
 
-renCtx1 : ∀{Γ1 Γ2} → Ren Γ1 Γ2 → Ctx1 Γ1 → Ctx1 Γ2
-renCtx1 ξ [] = []
-renCtx1 ξ (t ∷ Δ) = ren ξ t ∷ renCtx1 ξ Δ
+renTyCtx : ∀{Γ1 Γ2} → TyRen Γ1 Γ2 → TyCtx Γ1 → TyCtx Γ2
+renTyCtx ξ [] = []
+renTyCtx ξ (t ∷ Δ) = tyRen ξ t ∷ renTyCtx ξ Δ
 
-renCtx1++ : ∀{Γ1 Γ2} {ξ : Ren Γ1 Γ2} (Δ1 Δ2 : Ctx1 Γ1) →
-            renCtx1 ξ (Δ1 ++ Δ2) ≡ renCtx1 ξ Δ1 ++ renCtx1 ξ Δ2
-renCtx1++ [] Δ2 = refl
-renCtx1++ {ξ = ξ} (t ∷ Δ1) Δ2 = cong (ren ξ t ∷_) (renCtx1++ Δ1 Δ2)
+renTyCtx++ : ∀{Γ1 Γ2} {ξ : TyRen Γ1 Γ2} (Δ1 Δ2 : TyCtx Γ1) →
+            renTyCtx ξ (Δ1 ++ Δ2) ≡ renTyCtx ξ Δ1 ++ renTyCtx ξ Δ2
+renTyCtx++ [] Δ2 = refl
+renTyCtx++ {ξ = ξ} (t ∷ Δ1) Δ2 = cong (tyRen ξ t ∷_) (renTyCtx++ Δ1 Δ2)
 
-renCtxId1 : ∀{Γ} (Δ : Ctx1 Γ) → renCtx1 IdRen Δ ≡ Δ
-renCtxId1 [] = refl
-renCtxId1 (t ∷ Δ) = cong₂ _∷_ (renId t) (renCtxId1 Δ)
+renTyCtxId : ∀{Γ} (Δ : TyCtx Γ) → renTyCtx TyIdRen Δ ≡ Δ
+renTyCtxId [] = refl
+renTyCtxId (t ∷ Δ) = cong₂ _∷_ (renId t) (renTyCtxId Δ)
 
-renCtx1• : ∀{Γ1 Γ2 Γ3} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
-          renCtx1 (ξ1 • ξ2) ≈ renCtx1 ξ1 ∘ renCtx1 ξ2
-renCtx1• ξ1 ξ2 [] = refl
-renCtx1• ξ1 ξ2 (t ∷ Δ) = cong₂ _∷_ (ren• ξ1 ξ2 t) (renCtx1• ξ1 ξ2 Δ)
+renTyCtx• : ∀{Γ1 Γ2 Γ3} (ξ1 : TyRen Γ2 Γ3) (ξ2 : TyRen Γ1 Γ2) →
+          renTyCtx (ξ1 • ξ2) ≈ renTyCtx ξ1 ∘ renTyCtx ξ2
+renTyCtx• ξ1 ξ2 [] = refl
+renTyCtx• ξ1 ξ2 (t ∷ Δ) = cong₂ _∷_ (ren• ξ1 ξ2 t) (renTyCtx• ξ1 ξ2 Δ)
+
+subTyCtx : ∀{Γ1 Γ2} → TySub Γ1 Γ2 → TyCtx Γ1 → TyCtx Γ2
+subTyCtx σ [] = []
+subTyCtx σ (t ∷ Δ) = tySub σ t ∷ subTyCtx σ Δ
+
+subTyCtx++ : ∀{Γ1 Γ2} {σ : TySub Γ1 Γ2} (Δ1 Δ2 : TyCtx Γ1) →
+            subTyCtx σ (Δ1 ++ Δ2) ≡ subTyCtx σ Δ1 ++ subTyCtx σ Δ2
+subTyCtx++ [] Δ2 = refl
+subTyCtx++ {σ = σ} (t ∷ Δ1) Δ2 = cong (tySub σ t ∷_) (subTyCtx++ Δ1 Δ2)
+
+subTyCtxId : ∀{Γ} (Δ : TyCtx Γ) → subTyCtx TyIdSub Δ ≡ Δ
+subTyCtxId [] = refl
+subTyCtxId (t ∷ Δ) = cong₂ _∷_ (subId t) (subTyCtxId Δ)
+
+subTyCtx◦ : ∀{Γ1 Γ2 Γ3} (σ1 : TySub Γ2 Γ3) (σ2 : TySub Γ1 Γ2) →
+           subTyCtx (σ1 ◦ σ2) ≈ subTyCtx σ1 ∘ subTyCtx σ2
+subTyCtx◦ σ1 σ2 [] = refl
+subTyCtx◦ σ1 σ2 (t ∷ Δ) = cong₂ _∷_ (sub◦ σ1 σ2 t) (subTyCtx◦ σ1 σ2 Δ)
+
+subTyCtxι : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) →
+           subTyCtx (ιₜ ξ) ≈ renTyCtx ξ
+subTyCtxι ξ [] = refl
+subTyCtxι ξ (t ∷ Δ) = cong₂ _∷_ (subι ξ t) (subTyCtxι ξ Δ)
 
 Binder : Ctx → Set
-Binder Γ = Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ) × Typ (Γ' ++ Γ))
+Binder Γ = Σ[ Γ' ∈ Ctx ] (TyCtx (Γ' ++ Γ) × Typ (Γ' ++ Γ))
 
-renBinder : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → Binder Γ1 → Binder Γ2
+renBinder : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) → Binder Γ1 → Binder Γ2
 fst (renBinder ξ (Γ' , Δ , t)) = Γ'
-fst (snd (renBinder ξ (Γ' , Δ , t))) = renCtx1 (Keep* ξ Γ') Δ
-snd (snd (renBinder ξ (Γ' , Δ , t))) = ren (Keep* ξ Γ') t
+fst (snd (renBinder ξ (Γ' , Δ , t))) = renTyCtx (TyKeep* ξ Γ') Δ
+snd (snd (renBinder ξ (Γ' , Δ , t))) = tyRen (TyKeep* ξ Γ') t
 
-renBinders : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → List (Binder Γ1) → List (Binder Γ2)
+renBinders : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) → List (Binder Γ1) → List (Binder Γ2)
 renBinders ξ = map (renBinder ξ)
 
-subCtx1 : ∀{Γ1 Γ2} → Sub Γ1 Γ2 → Ctx1 Γ1 → Ctx1 Γ2
-subCtx1 σ [] = []
-subCtx1 σ (t ∷ Δ) = sub σ t ∷ subCtx1 σ Δ
-
-subCtx1++ : ∀{Γ1 Γ2} {σ : Sub Γ1 Γ2} (Δ1 Δ2 : Ctx1 Γ1) →
-            subCtx1 σ (Δ1 ++ Δ2) ≡ subCtx1 σ Δ1 ++ subCtx1 σ Δ2
-subCtx1++ [] Δ2 = refl
-subCtx1++ {σ = σ} (t ∷ Δ1) Δ2 = cong (sub σ t ∷_) (subCtx1++ Δ1 Δ2)
-
-subCtxId1 : ∀{Γ} (Δ : Ctx1 Γ) → subCtx1 IdSub Δ ≡ Δ
-subCtxId1 [] = refl
-subCtxId1 (t ∷ Δ) = cong₂ _∷_ (subId t) (subCtxId1 Δ)
-
-subCtx1◦ : ∀{Γ1 Γ2 Γ3} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-           subCtx1 (σ1 ◦ σ2) ≈ subCtx1 σ1 ∘ subCtx1 σ2
-subCtx1◦ σ1 σ2 [] = refl
-subCtx1◦ σ1 σ2 (t ∷ Δ) = cong₂ _∷_ (sub◦ σ1 σ2 t) (subCtx1◦ σ1 σ2 Δ)
-
-subCtx1ι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) →
-           subCtx1 (ι ξ) ≈ renCtx1 ξ
-subCtx1ι ξ [] = refl
-subCtx1ι ξ (t ∷ Δ) = cong₂ _∷_ (subι ξ t) (subCtx1ι ξ Δ)
-
-subBinder : ∀{Γ1 Γ2} (σ : Sub Γ1 Γ2) → Binder Γ1 → Binder Γ2
+subBinder : ∀{Γ1 Γ2} (σ : TySub Γ1 Γ2) → Binder Γ1 → Binder Γ2
 fst (subBinder σ (Γ' , Δ , t)) = Γ'
-fst (snd (subBinder σ (Γ' , Δ , t))) = subCtx1 (KeepSub* σ Γ') Δ
-snd (snd (subBinder σ (Γ' , Δ , t))) = sub (KeepSub* σ Γ') t
+fst (snd (subBinder σ (Γ' , Δ , t))) = subTyCtx (TyKeepSub* σ Γ') Δ
+snd (snd (subBinder σ (Γ' , Δ , t))) = tySub (TyKeepSub* σ Γ') t
 
-subBinderι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → subBinder (ι ξ) ≗ renBinder ξ
+subBinderι : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) → subBinder (ιₜ ξ) ≗ renBinder ξ
 subBinderι ξ (Γ , Δ , t) = Σ-≡,≡↔≡ .Inverse.f (
   refl ,
   ×-≡,≡↔≡ .Inverse.f (
-    (subCtx1 (KeepSub* (ι ξ) Γ) Δ
-      ≡⟨ cong (λ x → subCtx1 x Δ) (Keepι* ξ Γ) ⟩
-    subCtx1 (ι (Keep* ξ Γ)) Δ
-      ≡⟨ subCtx1ι (Keep* ξ Γ) Δ ⟩
-    renCtx1 (Keep* ξ Γ) Δ ∎) ,
-    (sub (KeepSub* (ι ξ) Γ) t
-      ≡⟨ cong (λ x → sub x t) (Keepι* ξ Γ) ⟩
-    sub (ι (Keep* ξ Γ)) t
-      ≡⟨ subι (Keep* ξ Γ) t ⟩
-    ren (Keep* ξ Γ) t ∎)))
+    (subTyCtx (TyKeepSub* (ιₜ ξ) Γ) Δ
+      ≡⟨ cong (λ x → subTyCtx x Δ) (Keepι* ξ Γ) ⟩
+    subTyCtx (ιₜ (TyKeep* ξ Γ)) Δ
+      ≡⟨ subTyCtxι (TyKeep* ξ Γ) Δ ⟩
+    renTyCtx (TyKeep* ξ Γ) Δ ∎) ,
+    (tySub (TyKeepSub* (ιₜ ξ) Γ) t
+      ≡⟨ cong (λ x → tySub x t) (Keepι* ξ Γ) ⟩
+    tySub (ιₜ (TyKeep* ξ Γ)) t
+      ≡⟨ subι (TyKeep* ξ Γ) t ⟩
+    tyRen (TyKeep* ξ Γ) t ∎)))
 
-subBinders : ∀{Γ1 Γ2} (σ : Sub Γ1 Γ2) → List (Binder Γ1) → List (Binder Γ2)
+subBinders : ∀{Γ1 Γ2} (σ : TySub Γ1 Γ2) → List (Binder Γ1) → List (Binder Γ2)
 subBinders σ = map (subBinder σ)
 
-subBindersι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → subBinders (ι ξ) ≗ renBinders ξ
+subBindersι : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) → subBinders (ιₜ ξ) ≗ renBinders ξ
 subBindersι ξ = map-cong (subBinderι ξ)
 
 MBinder : MCtx → Set
@@ -121,92 +128,92 @@ MBinder Γ = Σ[ Γ' ∈ Ctx ] (List (MTm (map (λ x → [] , x) Γ' ++ Γ) ([] 
 
 interpBinders : ∀{Σ} (Γ : Ctx) → TyVec Γ Σ → MBinder Σ → Binder Γ
 fst (interpBinders Γ η (Γ' , Δ , t)) = Γ'
-fst (snd (interpBinders Γ η (Γ' , Δ , t))) = map (λ x → interpTm x (tmVec++ η Γ') IdSub) Δ
-snd (snd (interpBinders Γ η (Γ' , Δ , t))) = interpTm t (tmVec++ η Γ') IdSub
+fst (snd (interpBinders Γ η (Γ' , Δ , t))) = map (λ x → interpTm x (tmVec++ η Γ') TyIdSub) Δ
+snd (snd (interpBinders Γ η (Γ' , Δ , t))) = interpTm t (tmVec++ η Γ') TyIdSub
 
-map-interpTm : ∀{Γ1 Γ2 Σ} (σ : Sub Γ1 Γ2) (η : TyVec Γ1 Σ) (Γ : Ctx) →
+map-interpTm : ∀{Γ1 Γ2 Σ} (σ : TySub Γ1 Γ2) (η : TyVec Γ1 Σ) (Γ : Ctx) →
                 (Δ : List (MTm (map (λ x → [] , x) Γ ++ Σ) ([] , *))) →
-                map (λ x → interpTm x (tmVec++ (subVec σ η) Γ) IdSub) Δ ≡
-                subCtx1 (KeepSub* σ Γ) (map (λ x → interpTm x (tmVec++ η Γ) IdSub) Δ)
+                map (λ x → interpTm x (tmVec++ (tySubVec σ η) Γ) TyIdSub) Δ ≡
+                subTyCtx (TyKeepSub* σ Γ) (map (λ x → interpTm x (tmVec++ η Γ) TyIdSub) Δ)
 map-interpTm σ η Γ [] = refl
 map-interpTm σ η Γ (t ∷ Δ) = cong₂ _∷_
-  (interpTm t (tmVec++ (subVec σ η) Γ) IdSub
-    ≡⟨ cong (λ x → interpTm t x IdSub) (tmVec++∘subVec η Γ σ) ⟩
-  interpTm t (subVec (KeepSub* σ Γ) (tmVec++ η Γ)) IdSub
-    ≡⟨ interpTmSub t (tmVec++ η Γ) (KeepSub* σ Γ) IdSub IdSub (Id◦ _ ∙ sym (◦Id _)) ⟩
-   sub (KeepSub* σ Γ) (interpTm t (tmVec++ η Γ) IdSub) ∎)
+  (interpTm t (tmVec++ (tySubVec σ η) Γ) TyIdSub
+    ≡⟨ cong (λ x → interpTm t x TyIdSub) (tmVec++∘subVec η Γ σ) ⟩
+  interpTm t (tySubVec (TyKeepSub* σ Γ) (tmVec++ η Γ)) TyIdSub
+    ≡⟨ interpTmSub t (tmVec++ η Γ) (TyKeepSub* σ Γ) TyIdSub TyIdSub (Id◦ _ ∙ sym (◦Id _)) ⟩
+   tySub (TyKeepSub* σ Γ) (interpTm t (tmVec++ η Γ) TyIdSub) ∎)
   (map-interpTm σ η Γ Δ)
 
-interpBinders∘subVec : ∀{Γ1 Γ2 Σ} (σ : Sub Γ1 Γ2) (η : TyVec Γ1 Σ) →
-                       interpBinders Γ2 (subVec σ η) ≗ subBinder σ ∘ interpBinders Γ1 η
+interpBinders∘subVec : ∀{Γ1 Γ2 Σ} (σ : TySub Γ1 Γ2) (η : TyVec Γ1 Σ) →
+                       interpBinders Γ2 (tySubVec σ η) ≗ subBinder σ ∘ interpBinders Γ1 η
 interpBinders∘subVec {Γ1} {Γ2} {Σ} σ η (Γ , Δ , t) = Σ-≡,≡↔≡ .Inverse.f (
   refl ,
   ×-≡,≡↔≡ .Inverse.f (
     map-interpTm σ η Γ Δ ,
-    (interpTm t (tmVec++ (subVec σ η) Γ) IdSub
-      ≡⟨ cong (λ x → interpTm t x IdSub) (tmVec++∘subVec η Γ σ) ⟩
-    interpTm t (subVec (KeepSub* σ Γ) (tmVec++ η Γ)) IdSub
-      ≡⟨ interpTmSub t (tmVec++ η Γ) (KeepSub* σ Γ) IdSub IdSub (Id◦ _ ∙ sym (◦Id _)) ⟩
-    sub (KeepSub* σ Γ) (interpTm t (tmVec++ η Γ) IdSub) ∎)))
+    (interpTm t (tmVec++ (tySubVec σ η) Γ) TyIdSub
+      ≡⟨ cong (λ x → interpTm t x TyIdSub) (tmVec++∘subVec η Γ σ) ⟩
+    interpTm t (tySubVec (TyKeepSub* σ Γ) (tmVec++ η Γ)) TyIdSub
+      ≡⟨ interpTmSub t (tmVec++ η Γ) (TyKeepSub* σ Γ) TyIdSub TyIdSub (Id◦ _ ∙ sym (◦Id _)) ⟩
+    tySub (TyKeepSub* σ Γ) (interpTm t (tmVec++ η Γ) TyIdSub) ∎)))
 
 module Syntax1
   -- Term constructor shape
-  (Shape₁ : Set)
+  (Shape : Set)
   -- Type part of constructor signature
-  (Pos₀₁ : Shape₁ → List (Ctx × Knd))
+  (TmTyPos : Shape → List (Ctx × Knd))
   -- Term part of constructor signature, which depends on the type part
-  (Pos₁ : (s : Shape₁) (Γ : Ctx) → TyVec Γ (Pos₀₁ s) → List (Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ) × Typ (Γ' ++ Γ))) × Typ Γ)
+  (TmPos : (s : Shape) (Γ : Ctx) → TyVec Γ (TmTyPos s) → List (Σ[ Γ' ∈ Ctx ] (TyCtx (Γ' ++ Γ) × Typ (Γ' ++ Γ))) × Typ Γ)
   -- Coherence requirements
-  (subVecPos₁ : ∀{Γ1 Γ2 c} (σ : Sub Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
-                Pos₁ c Γ2 (subVec σ ts) .snd ≡ sub σ (Pos₁ c Γ1 ts .snd))
-  (subVecCtxPos₁ : ∀{Γ1 Γ2 c} (σ : Sub Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
-                  Pos₁ c Γ2 (subVec σ ts) .fst ≡ subBinders σ (Pos₁ c Γ1 ts .fst))
+  (subVecTmPos : ∀{Γ1 Γ2 c} (σ : TySub Γ1 Γ2) (ts : TyVec Γ1 (TmTyPos c)) →
+                TmPos c Γ2 (tySubVec σ ts) .snd ≡ tySub σ (TmPos c Γ1 ts .snd))
+  (subVecCtxTmPos : ∀{Γ1 Γ2 c} (σ : TySub Γ1 Γ2) (ts : TyVec Γ1 (TmTyPos c)) →
+                  TmPos c Γ2 (tySubVec σ ts) .fst ≡ subBinders σ (TmPos c Γ1 ts .fst))
   where
 
-  renVecPos₁ : ∀{Γ1 Γ2 c} (ξ : Ren Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ c)) →
-                Pos₁ c Γ2 (renVec ξ ts) .snd ≡ ren ξ (Pos₁ c Γ1 ts .snd)
-  renVecPos₁ {Γ1} {Γ2} {s} ξ ts =
-    Pos₁ s Γ2 (renVec ξ ts) .snd
-      ≡⟨ sym (cong (λ x → Pos₁ s Γ2 x .snd) (subVecι ξ ts)) ⟩
-    Pos₁ s Γ2 (subVec (ι ξ) ts) .snd
-      ≡⟨ subVecPos₁ (ι ξ) ts ⟩
-    sub (ι ξ) (Pos₁ s Γ1 ts .snd)
-      ≡⟨ subι ξ  (Pos₁ s Γ1 ts .snd) ⟩
-    ren ξ (Pos₁ s Γ1 ts .snd) ∎
+  renVecTmPos : ∀{Γ1 Γ2 c} (ξ : TyRen Γ1 Γ2) (ts : TyVec Γ1 (TmTyPos c)) →
+                TmPos c Γ2 (tyRenVec ξ ts) .snd ≡ tyRen ξ (TmPos c Γ1 ts .snd)
+  renVecTmPos {Γ1} {Γ2} {s} ξ ts =
+    TmPos s Γ2 (tyRenVec ξ ts) .snd
+      ≡⟨ sym (cong (λ x → TmPos s Γ2 x .snd) (subVecι ξ ts)) ⟩
+    TmPos s Γ2 (tySubVec (ιₜ ξ) ts) .snd
+      ≡⟨ subVecTmPos (ιₜ ξ) ts ⟩
+    tySub (ιₜ ξ) (TmPos s Γ1 ts .snd)
+      ≡⟨ subι ξ  (TmPos s Γ1 ts .snd) ⟩
+    tyRen ξ (TmPos s Γ1 ts .snd) ∎
 
-  renVecCtxPos₁ : ∀{Γ1 Γ2 s} (ξ : Ren Γ1 Γ2) (ts : TyVec Γ1 (Pos₀₁ s)) →
-                  Pos₁ s Γ2 (renVec ξ ts) .fst ≡ renBinders ξ (Pos₁ s Γ1 ts .fst)
-  renVecCtxPos₁ {Γ1} {Γ2} {s} ξ ts =
-    Pos₁ s Γ2 (renVec ξ ts) .fst
-      ≡⟨ cong (λ x → Pos₁ s Γ2 x .fst) (sym (subVecι ξ ts)) ⟩
-    Pos₁ s Γ2 (subVec (ι ξ) ts) .fst
-      ≡⟨ subVecCtxPos₁ (ι ξ) ts ⟩
-    subBinders (ι ξ) (Pos₁ s Γ1 ts .fst)
-      ≡⟨ subBindersι ξ (Pos₁ s Γ1 ts .fst) ⟩
-    renBinders ξ (Pos₁ s Γ1 ts .fst) ∎
+  renVecCtxTmPos : ∀{Γ1 Γ2 s} (ξ : TyRen Γ1 Γ2) (ts : TyVec Γ1 (TmTyPos s)) →
+                  TmPos s Γ2 (tyRenVec ξ ts) .fst ≡ renBinders ξ (TmPos s Γ1 ts .fst)
+  renVecCtxTmPos {Γ1} {Γ2} {s} ξ ts =
+    TmPos s Γ2 (tyRenVec ξ ts) .fst
+      ≡⟨ cong (λ x → TmPos s Γ2 x .fst) (sym (subVecι ξ ts)) ⟩
+    TmPos s Γ2 (tySubVec (ιₜ ξ) ts) .fst
+      ≡⟨ subVecCtxTmPos (ιₜ ξ) ts ⟩
+    subBinders (ιₜ ξ) (TmPos s Γ1 ts .fst)
+      ≡⟨ subBindersι ξ (TmPos s Γ1 ts .fst) ⟩
+    renBinders ξ (TmPos s Γ1 ts .fst) ∎
 
   -- In-context variables
-  data Var1 : (Γ : Ctx) (Δ : Ctx1 Γ) → Typ Γ → Set where
-    V0 : ∀{Γ Δ} {t : Typ Γ} → Var1 Γ (t ∷ Δ) t
-    VS : ∀{Γ Δ} {t s : Typ Γ} → Var1 Γ Δ t → Var1 Γ (s ∷ Δ) t
+  data Var : (Γ : Ctx) (Δ : TyCtx Γ) → Typ Γ → Set where
+    V0 : ∀{Γ Δ} {t : Typ Γ} → Var Γ (t ∷ Δ) t
+    VS : ∀{Γ Δ} {t s : Typ Γ} → Var Γ Δ t → Var Γ (s ∷ Δ) t
 
-  data Tm (Γ : Ctx) (Δ : Ctx1 Γ) : Typ Γ → Set
-  data TmVec (Γ : Ctx) (Δ : Ctx1 Γ) : List (Σ[ Γ' ∈ Ctx ] (Ctx1 (Γ' ++ Γ) × Typ (Γ' ++ Γ))) → Set
+  data Tm (Γ : Ctx) (Δ : TyCtx Γ) : Typ Γ → Set
+  data TmVec (Γ : Ctx) (Δ : TyCtx Γ) : List (Σ[ Γ' ∈ Ctx ] (TyCtx (Γ' ++ Γ) × Typ (Γ' ++ Γ))) → Set
 
   -- Well-typed terms
   data Tm Γ Δ where
-    var1 : ∀{t} → Var1 Γ Δ t → Tm Γ Δ t
-    constr1 : (c : Shape₁) →
-             (ts : TyVec Γ (Pos₀₁ c)) →
-             (es : TmVec Γ Δ (Pos₁ c Γ ts .fst)) →
-             Tm Γ Δ (Pos₁ c Γ ts .snd)
+    var : ∀{t} → Var Γ Δ t → Tm Γ Δ t
+    constr : (c : Shape) →
+             (ts : TyVec Γ (TmTyPos c)) →
+             (es : TmVec Γ Δ (TmPos c Γ ts .fst)) →
+             Tm Γ Δ (TmPos c Γ ts .snd)
 
   -- Well-typed lists of terms
   -- infixr 5 _∷_
   data TmVec Γ Δ where
     [] : TmVec Γ Δ []
-    _∷_ : ∀{Γ' t Θ} {Δ' : Ctx1 (Γ' ++ Γ)} →
-          (e : Tm (Γ' ++ Γ) (Δ' ++ renCtx1 (Drop* IdRen Γ') Δ) t) →
+    _∷_ : ∀{Γ' t Θ} {Δ' : TyCtx (Γ' ++ Γ)} →
+          (e : Tm (Γ' ++ Γ) (Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') Δ) t) →
           (es : TmVec Γ Δ Θ) →
           TmVec Γ Δ (((Γ' , Δ' , t)) ∷ Θ)
 
@@ -214,214 +221,215 @@ module Syntax1
   -- RENAMING --
   --------------
 
-  data Ren1 (Γ : Ctx) : (Δ1 Δ2 : Ctx1 Γ) → Set where
-    ε : Ren1 Γ [] []
-    Keep1 : ∀{Δ1 Δ2 t} → Ren1 Γ Δ1 Δ2 → Ren1 Γ (t ∷ Δ1) (t ∷ Δ2)
-    Drop1 : ∀{Δ1 Δ2 t} → Ren1 Γ Δ1 Δ2 → Ren1 Γ Δ1 (t ∷ Δ2)
+  data Ren (Γ : Ctx) : (Δ1 Δ2 : TyCtx Γ) → Set where
+    ε : Ren Γ [] []
+    Keep : ∀{Δ1 Δ2 t} → Ren Γ Δ1 Δ2 → Ren Γ (t ∷ Δ1) (t ∷ Δ2)
+    Drop : ∀{Δ1 Δ2 t} → Ren Γ Δ1 Δ2 → Ren Γ Δ1 (t ∷ Δ2)
 
-  -- Weaken the kind context of a renaming
-  wkRen : ∀{Γ1 Γ2 Δ1 Δ2} (ξ : Ren Γ1 Γ2) → Ren1 Γ1 Δ1 Δ2 → Ren1 Γ2 (renCtx1 ξ Δ1) (renCtx1 ξ Δ2)
+  -- Rename the kind context of a renaming
+  wkRen : ∀{Γ1 Γ2 Δ1 Δ2} (ξ : TyRen Γ1 Γ2) → Ren Γ1 Δ1 Δ2 → Ren Γ2 (renTyCtx ξ Δ1) (renTyCtx ξ Δ2)
   wkRen ξ1 ε = ε
-  wkRen ξ1 (Keep1 ξ2) = Keep1 (wkRen ξ1 ξ2)
-  wkRen ξ1 (Drop1 ξ2) = Drop1 (wkRen ξ1 ξ2)
+  wkRen ξ1 (Keep ξ2) = Keep (wkRen ξ1 ξ2)
+  wkRen ξ1 (Drop ξ2) = Drop (wkRen ξ1 ξ2)
 
-  IdRen1 : ∀{Γ Δ} → Ren1 Γ Δ Δ
-  IdRen1 {Δ = []} = ε 
-  IdRen1 {Δ = t ∷ Δ} = Keep1 IdRen1
+  IdRen : ∀{Γ Δ} → Ren Γ Δ Δ
+  IdRen {Δ = []} = ε 
+  IdRen {Δ = t ∷ Δ} = Keep IdRen
 
-  Keep1* : ∀{Γ Δ1 Δ2} → Ren1 Γ Δ1 Δ2 → ∀ Δ' → Ren1 Γ (Δ' ++ Δ1) (Δ' ++ Δ2)
-  Keep1* ξ [] = ξ
-  Keep1* ξ (t ∷ Δ') = Keep1 (Keep1* ξ Δ')
+  Keep* : ∀{Γ Δ1 Δ2} → Ren Γ Δ1 Δ2 → ∀ Δ' → Ren Γ (Δ' ++ Δ1) (Δ' ++ Δ2)
+  Keep* ξ [] = ξ
+  Keep* ξ (t ∷ Δ') = Keep (Keep* ξ Δ')
 
-  Keep01 : ∀{Γ Δ1 Δ2 κ} → Ren1 Γ Δ1 Δ2 → Ren1 (κ ∷ Γ) (renCtx1 (Drop IdRen) Δ1) (renCtx1 (Drop IdRen) Δ2)
-  Keep01 ε = ε
-  Keep01 (Keep1 ξ) = Keep1 (Keep01 ξ)
-  Keep01 (Drop1 ξ) = Drop1 (Keep01 ξ)
+  KeepTy : ∀{Γ Δ1 Δ2 κ} → Ren Γ Δ1 Δ2 → Ren (κ ∷ Γ) (renTyCtx (TyDrop TyIdRen) Δ1) (renTyCtx (TyDrop TyIdRen) Δ2)
+  KeepTy ε = ε
+  KeepTy (Keep ξ) = Keep (KeepTy ξ)
+  KeepTy (Drop ξ) = Drop (KeepTy ξ)
 
-  Keep01* : ∀{Γ Δ1 Δ2} → Ren1 Γ Δ1 Δ2 → ∀ Γ' → Ren1 (Γ' ++ Γ) (renCtx1 (Drop* IdRen Γ') Δ1) (renCtx1 (Drop* IdRen Γ') Δ2)
-  Keep01* {Γ} {Δ1} {Δ2} ξ [] = subst₂ (Ren1 Γ) (sym (renCtxId1 Δ1)) (sym (renCtxId1 Δ2)) ξ
-  Keep01* {Γ} {Δ1} {Δ2} ξ (κ ∷ Γ') = 
-    subst₂ (Ren1 (κ ∷ Γ' ++ Γ))
-      (renCtx1 (Drop IdRen) (renCtx1 (Drop* IdRen Γ') Δ1)
-        ≡⟨ sym (renCtx1• (Drop IdRen) (Drop* IdRen Γ') Δ1) ⟩
-      renCtx1 (Drop (IdRen • Drop* IdRen Γ')) Δ1
-        ≡⟨ cong (λ x → renCtx1 (Drop x) Δ1) (Id• (Drop* IdRen Γ')) ⟩
-      renCtx1 (Drop (Drop* IdRen Γ')) Δ1 ∎)
-      (renCtx1 (Drop IdRen) (renCtx1 (Drop* IdRen Γ') Δ2)
-        ≡⟨ sym (renCtx1• (Drop IdRen) (Drop* IdRen Γ') Δ2) ⟩
-      renCtx1 (Drop (IdRen • Drop* IdRen Γ')) Δ2
-        ≡⟨ cong (λ x → renCtx1 (Drop x) Δ2) (Id• (Drop* IdRen Γ')) ⟩
-      renCtx1 (Drop (Drop* IdRen Γ')) Δ2 ∎)
+  KeepTy* : ∀{Γ Δ1 Δ2} → Ren Γ Δ1 Δ2 → ∀ Γ' → Ren (Γ' ++ Γ) (renTyCtx (TyDrop* TyIdRen Γ') Δ1) (renTyCtx (TyDrop* TyIdRen Γ') Δ2)
+  KeepTy* {Γ} {Δ1} {Δ2} ξ [] = subst₂ (Ren Γ) (sym (renTyCtxId Δ1)) (sym (renTyCtxId Δ2)) ξ
+  KeepTy* {Γ} {Δ1} {Δ2} ξ (κ ∷ Γ') = 
+    subst₂ (Ren (κ ∷ Γ' ++ Γ))
+      (renTyCtx (TyDrop TyIdRen) (renTyCtx (TyDrop* TyIdRen Γ') Δ1)
+        ≡⟨ sym (renTyCtx• (TyDrop TyIdRen) (TyDrop* TyIdRen Γ') Δ1) ⟩
+      renTyCtx (TyDrop (TyIdRen • TyDrop* TyIdRen Γ')) Δ1
+        ≡⟨ cong (λ x → renTyCtx (TyDrop x) Δ1) (Id• (TyDrop* TyIdRen Γ')) ⟩
+      renTyCtx (TyDrop (TyDrop* TyIdRen Γ')) Δ1 ∎)
+      (renTyCtx (TyDrop TyIdRen) (renTyCtx (TyDrop* TyIdRen Γ') Δ2)
+        ≡⟨ sym (renTyCtx• (TyDrop TyIdRen) (TyDrop* TyIdRen Γ') Δ2) ⟩
+      renTyCtx (TyDrop (TyIdRen • TyDrop* TyIdRen Γ')) Δ2
+        ≡⟨ cong (λ x → renTyCtx (TyDrop x) Δ2) (Id• (TyDrop* TyIdRen Γ')) ⟩
+      renTyCtx (TyDrop (TyDrop* TyIdRen Γ')) Δ2 ∎)
       ξ'
     where
-    ξ' : Ren1 (κ ∷ Γ' ++ Γ) (renCtx1 (Drop IdRen) (renCtx1 (Drop* IdRen Γ') Δ1))
-                            (renCtx1 (Drop IdRen) (renCtx1 (Drop* IdRen Γ') Δ2))     
-    ξ' = Keep01 (Keep01* ξ Γ')
+    ξ' : Ren (κ ∷ Γ' ++ Γ) (renTyCtx (TyDrop TyIdRen) (renTyCtx (TyDrop* TyIdRen Γ') Δ1))
+                            (renTyCtx (TyDrop TyIdRen) (renTyCtx (TyDrop* TyIdRen Γ') Δ2))     
+    ξ' = KeepTy (KeepTy* ξ Γ')
 
   -- Variable renaming
-  renVar1 : ∀{Γ Δ1 Δ2 t} → Ren1 Γ Δ1 Δ2 → Var1 Γ Δ1 t → Var1 Γ Δ2 t
-  renVar1 (Keep1 ξ) V0 = V0
-  renVar1 (Keep1 ξ) (VS x) = VS (renVar1 ξ x)
-  renVar1 (Drop1 ξ) x = VS (renVar1 ξ x)
+  renVar : ∀{Γ Δ1 Δ2 t} → Ren Γ Δ1 Δ2 → Var Γ Δ1 t → Var Γ Δ2 t
+  renVar (Keep ξ) V0 = V0
+  renVar (Keep ξ) (VS x) = VS (renVar ξ x)
+  renVar (Drop ξ) x = VS (renVar ξ x)
 
   -- Term renaming
-  ren1 : ∀{Γ Δ1 Δ2 t} → Ren1 Γ Δ1 Δ2 → Tm Γ Δ1 t → Tm Γ Δ2 t
-  renVec1 : ∀{Γ Δ1 Δ2 Θ} → Ren1 Γ Δ1 Δ2 → TmVec Γ Δ1 Θ → TmVec Γ Δ2 Θ
+  ren : ∀{Γ Δ1 Δ2 t} → Ren Γ Δ1 Δ2 → Tm Γ Δ1 t → Tm Γ Δ2 t
+  renVec : ∀{Γ Δ1 Δ2 Θ} → Ren Γ Δ1 Δ2 → TmVec Γ Δ1 Θ → TmVec Γ Δ2 Θ
 
-  ren1 ξ (var1 x) = var1 (renVar1 ξ x)
-  ren1 ξ (constr1 c ts es) = constr1 c ts (renVec1 ξ es)
+  ren ξ (var x) = var (renVar ξ x)
+  ren ξ (constr c ts es) = constr c ts (renVec ξ es)
   
-  renVec1 ξ [] = [] 
-  renVec1 {Γ} {Δ1} {Δ2} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
-    ren1 (Keep1* (Keep01* ξ Γ') Δ') e ∷ renVec1 ξ es
+  renVec ξ [] = [] 
+  renVec {Γ} {Δ1} {Δ2} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
+    ren (Keep* (KeepTy* ξ Γ') Δ') e ∷ renVec ξ es
 
   -- Rename the types in a variable
-  renVar01 : ∀{Γ1 Γ2 Δ t} (ξ : Ren Γ1 Γ2) → Var1 Γ1 Δ t → Var1 Γ2 (renCtx1 ξ Δ) (ren ξ t)
-  renVar01 ξ V0 = V0 
-  renVar01 ξ (VS x) = VS (renVar01 ξ x)
+  renVarTy : ∀{Γ1 Γ2 Δ t} (ξ : TyRen Γ1 Γ2) → Var Γ1 Δ t → Var Γ2 (renTyCtx ξ Δ) (tyRen ξ t)
+  renVarTy ξ V0 = V0 
+  renVarTy ξ (VS x) = VS (renVarTy ξ x)
 
   -- Rename the types in a term
-  ren01 : ∀{Γ1 Γ2 Δ t} (ξ : Ren Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (renCtx1 ξ Δ) (ren ξ t)
-  renVec01 : ∀{Γ1 Γ2 Δ Θ} (ξ : Ren Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (renCtx1 ξ Δ) (renBinders ξ Θ)
+  renTy : ∀{Γ1 Γ2 Δ t} (ξ : TyRen Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (renTyCtx ξ Δ) (tyRen ξ t)
+  renVecTy : ∀{Γ1 Γ2 Δ Θ} (ξ : TyRen Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (renTyCtx ξ Δ) (renBinders ξ Θ)
 
-  ren01 ξ (var1 x) = var1 (renVar01 ξ x)
-  ren01 {Γ1} {Γ2} {Δ} ξ (constr1 c ts es) =
-    subst (Tm Γ2 (renCtx1 ξ Δ)) (renVecPos₁ ξ ts)
-      (constr1 c (renVec ξ ts)
-      (subst (TmVec Γ2 (renCtx1 ξ Δ))
-        (sym (renVecCtxPos₁ ξ ts)) (renVec01 ξ es)))
+  renTy ξ (var x) = var (renVarTy ξ x)
+  renTy {Γ1} {Γ2} {Δ} ξ (constr c ts es) =
+    subst (Tm Γ2 (renTyCtx ξ Δ)) (renVecTmPos ξ ts)
+      (constr c (tyRenVec ξ ts)
+      (subst (TmVec Γ2 (renTyCtx ξ Δ))
+        (sym (renVecCtxTmPos ξ ts)) (renVecTy ξ es)))
   
-  renVec01 ξ [] = [] 
-  renVec01 {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
-    subst (λ x → Tm (Γ' ++ Γ2) x (ren (Keep* ξ Γ') t)) eq (ren01 (Keep* ξ Γ') e) ∷ renVec01 ξ es
+  renVecTy ξ [] = [] 
+  renVecTy {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
+    subst (λ x → Tm (Γ' ++ Γ2) x (tyRen (TyKeep* ξ Γ') t)) eq (renTy (TyKeep* ξ Γ') e) ∷ renVecTy ξ es
     where
-    eq : renCtx1 (Keep* ξ Γ') (Δ' ++ renCtx1 (Drop* IdRen Γ') Δ) ≡
-         renCtx1 (Keep* ξ Γ') Δ' ++ renCtx1 (Drop* IdRen Γ') (renCtx1 ξ Δ)
+    eq : renTyCtx (TyKeep* ξ Γ') (Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') Δ) ≡
+         renTyCtx (TyKeep* ξ Γ') Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') (renTyCtx ξ Δ)
     eq =
-      renCtx1 (Keep* ξ Γ') (Δ' ++ renCtx1 (Drop* IdRen Γ') Δ)
-        ≡⟨ renCtx1++ Δ' (renCtx1 (Drop* IdRen Γ') Δ) ⟩
-      renCtx1 (Keep* ξ Γ') Δ' ++ renCtx1 (Keep* ξ Γ') (renCtx1 (Drop* IdRen Γ') Δ)
-        ≡⟨ cong (renCtx1 (Keep* ξ Γ') Δ' ++_) (
-          renCtx1 (Keep* ξ Γ') (renCtx1 (Drop* IdRen Γ') Δ)
-            ≡⟨ sym (renCtx1• (Keep* ξ Γ') (Drop* IdRen Γ') Δ) ⟩
-          renCtx1 (Keep* ξ Γ' • Drop* IdRen Γ') Δ
-            ≡⟨ cong (flip renCtx1 Δ) (sym (Keep*•Drop* Γ')) ⟩
-          renCtx1 (Drop* (ξ • IdRen) Γ') Δ
-            ≡⟨ cong (λ x → renCtx1 (Drop* x Γ') Δ) (•Id ξ) ⟩
-          renCtx1 (Drop* ξ Γ') Δ
-            ≡⟨ cong (λ x → renCtx1 (Drop* x Γ') Δ) (sym (Id• ξ)) ⟩
-          renCtx1 (Drop* (IdRen • ξ) Γ') Δ
-            ≡⟨ cong (flip renCtx1 Δ) (Drop*• Γ') ⟩
-          renCtx1 (Drop* IdRen Γ' • ξ) Δ
-            ≡⟨ renCtx1• (Drop* IdRen Γ') ξ Δ ⟩
-          renCtx1 (Drop* IdRen Γ') (renCtx1 ξ Δ) ∎) ⟩
-      renCtx1 (Keep* ξ Γ') Δ' ++ renCtx1 (Drop* IdRen Γ') (renCtx1 ξ Δ) ∎
+      renTyCtx (TyKeep* ξ Γ') (Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') Δ)
+        ≡⟨ renTyCtx++ Δ' (renTyCtx (TyDrop* TyIdRen Γ') Δ) ⟩
+      renTyCtx (TyKeep* ξ Γ') Δ' ++ renTyCtx (TyKeep* ξ Γ') (renTyCtx (TyDrop* TyIdRen Γ') Δ)
+        ≡⟨ cong (renTyCtx (TyKeep* ξ Γ') Δ' ++_) (
+          renTyCtx (TyKeep* ξ Γ') (renTyCtx (TyDrop* TyIdRen Γ') Δ)
+            ≡⟨ sym (renTyCtx• (TyKeep* ξ Γ') (TyDrop* TyIdRen Γ') Δ) ⟩
+          renTyCtx (TyKeep* ξ Γ' • TyDrop* TyIdRen Γ') Δ
+            ≡⟨ cong (flip renTyCtx Δ) (sym (TyKeep*•Drop* Γ')) ⟩
+          renTyCtx (TyDrop* (ξ • TyIdRen) Γ') Δ
+            ≡⟨ cong (λ x → renTyCtx (TyDrop* x Γ') Δ) (•Id ξ) ⟩
+          renTyCtx (TyDrop* ξ Γ') Δ
+            ≡⟨ cong (λ x → renTyCtx (TyDrop* x Γ') Δ) (sym (Id• ξ)) ⟩
+          renTyCtx (TyDrop* (TyIdRen • ξ) Γ') Δ
+            ≡⟨ cong (flip renTyCtx Δ) (TyDrop*• Γ') ⟩
+          renTyCtx (TyDrop* TyIdRen Γ' • ξ) Δ
+            ≡⟨ renTyCtx• (TyDrop* TyIdRen Γ') ξ Δ ⟩
+          renTyCtx (TyDrop* TyIdRen Γ') (renTyCtx ξ Δ) ∎) ⟩
+      renTyCtx (TyKeep* ξ Γ') Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') (renTyCtx ξ Δ) ∎
 
   ------------------
   -- SUBSTITUTION --
   ------------------
 
-  data Sub1 (Γ : Ctx) : (Δ1 Δ2 : Ctx1 Γ) → Set where
-    ε : ∀{Δ} → Sub1 Γ [] Δ
-    _▸_ : ∀{Δ1 Δ2 t} (σ : Sub1 Γ Δ1 Δ2) (e : Tm Γ Δ2 t) → Sub1 Γ (t ∷ Δ1) Δ2
+  data Sub (Γ : Ctx) : (Δ1 Δ2 : TyCtx Γ) → Set where
+    ε : ∀{Δ} → Sub Γ [] Δ
+    _▸_ : ∀{Δ1 Δ2 t} (σ : Sub Γ Δ1 Δ2) (e : Tm Γ Δ2 t) → Sub Γ (t ∷ Δ1) Δ2
 
-  -- Weaken the kind context of a substitution
-  wkSub : ∀{Γ1 Γ2 Δ1 Δ2} (ξ : Ren Γ1 Γ2) → Sub1 Γ1 Δ1 Δ2 → Sub1 Γ2 (renCtx1 ξ Δ1) (renCtx1 ξ Δ2)
+  -- Rename the kind context of a substitution
+  wkSub : ∀{Γ1 Γ2 Δ1 Δ2} (ξ : TyRen Γ1 Γ2) → Sub Γ1 Δ1 Δ2 → Sub Γ2 (renTyCtx ξ Δ1) (renTyCtx ξ Δ2)
   wkSub ξ ε = ε
-  wkSub ξ (σ ▸ e) = wkSub ξ σ ▸ ren01 ξ e
+  wkSub ξ (σ ▸ e) = wkSub ξ σ ▸ renTy ξ e
 
-  infixr 9 _•◦1_ 
-  _•◦1_ : ∀{Γ Δ1 Δ2 Δ3} → Ren1 Γ Δ2 Δ3 → Sub1 Γ Δ1 Δ2 → Sub1 Γ Δ1 Δ3
-  ξ •◦1 ε = ε
-  ξ •◦1 (σ ▸ e) = (ξ •◦1 σ) ▸ ren1 ξ e
+  infixr 9 _•◦_ 
+  _•◦_ : ∀{Γ Δ1 Δ2 Δ3} → Ren Γ Δ2 Δ3 → Sub Γ Δ1 Δ2 → Sub Γ Δ1 Δ3
+  ξ •◦ ε = ε
+  ξ •◦ (σ ▸ e) = (ξ •◦ σ) ▸ ren ξ e
 
-  DropSub1 : ∀{Γ Δ1 Δ2 t} → Sub1 Γ Δ1 Δ2 → Sub1 Γ Δ1 (t ∷ Δ2)
-  DropSub1 σ = Drop1 IdRen1 •◦1 σ
+  DropSub : ∀{Γ Δ1 Δ2 t} → Sub Γ Δ1 Δ2 → Sub Γ Δ1 (t ∷ Δ2)
+  DropSub σ = Drop IdRen •◦ σ
 
-  DropSub1* : ∀{Γ Δ1 Δ2} → Sub1 Γ Δ1 Δ2 → ∀ Δ' → Sub1 Γ Δ1 (Δ' ++ Δ2)
-  DropSub1* σ [] = σ
-  DropSub1* σ (t ∷ Δ') = DropSub1 (DropSub1* σ Δ')
+  DropSub* : ∀{Γ Δ1 Δ2} → Sub Γ Δ1 Δ2 → ∀ Δ' → Sub Γ Δ1 (Δ' ++ Δ2)
+  DropSub* σ [] = σ
+  DropSub* σ (t ∷ Δ') = DropSub (DropSub* σ Δ')
 
-  KeepSub1 : ∀{Γ Δ1 Δ2 t} → Sub1 Γ Δ1 Δ2 → Sub1 Γ (t ∷ Δ1) (t ∷ Δ2)
-  KeepSub1 σ = DropSub1 σ ▸ var1 V0
+  KeepSub : ∀{Γ Δ1 Δ2 t} → Sub Γ Δ1 Δ2 → Sub Γ (t ∷ Δ1) (t ∷ Δ2)
+  KeepSub σ = DropSub σ ▸ var V0
 
-  KeepSub1* : ∀{Γ Δ1 Δ2} → Sub1 Γ Δ1 Δ2 → ∀ Δ' → Sub1 Γ (Δ' ++ Δ1) (Δ' ++ Δ2)
-  KeepSub1* σ [] = σ
-  KeepSub1* σ (t ∷ Δ') = KeepSub1 (KeepSub1* σ Δ')
+  KeepSub* : ∀{Γ Δ1 Δ2} → Sub Γ Δ1 Δ2 → ∀ Δ' → Sub Γ (Δ' ++ Δ1) (Δ' ++ Δ2)
+  KeepSub* σ [] = σ
+  KeepSub* σ (t ∷ Δ') = KeepSub (KeepSub* σ Δ')
 
-  ι1 : ∀{Γ Δ1 Δ2} → Ren1 Γ Δ1 Δ2 → Sub1 Γ Δ1 Δ2
-  ι1 ε = ε
-  ι1 (Keep1 ξ) = KeepSub1 (ι1 ξ)
-  ι1 (Drop1 ξ) = DropSub1 (ι1 ξ)
+  ι : ∀{Γ Δ1 Δ2} → Ren Γ Δ1 Δ2 → Sub Γ Δ1 Δ2
+  ι ε = ε
+  ι (Keep ξ) = KeepSub (ι ξ)
+  ι (Drop ξ) = DropSub (ι ξ)
 
-  IdSub1 : ∀{Γ Δ} → Sub1 Γ Δ Δ
-  IdSub1 = ι1 IdRen1
+  IdSub : ∀{Γ Δ} → Sub Γ Δ Δ
+  IdSub = ι IdRen
 
   -- Variable substitution
-  subVar1 : ∀{Γ Δ1 Δ2 t} → Sub1 Γ Δ1 Δ2 → Var1 Γ Δ1 t → Tm Γ Δ2 t
-  subVar1 (σ ▸ e) V0 = e
-  subVar1 (σ ▸ e) (VS x) = subVar1 σ x
+  subVar : ∀{Γ Δ1 Δ2 t} → Sub Γ Δ1 Δ2 → Var Γ Δ1 t → Tm Γ Δ2 t
+  subVar (σ ▸ e) V0 = e
+  subVar (σ ▸ e) (VS x) = subVar σ x
   
   -- Term substitution
-  sub1 : ∀{Γ Δ1 Δ2 t} → Sub1 Γ Δ1 Δ2 → Tm Γ Δ1 t → Tm Γ Δ2 t
-  subVec1 : ∀{Γ Δ1 Δ2 Θ} → Sub1 Γ Δ1 Δ2 → TmVec Γ Δ1 Θ → TmVec Γ Δ2 Θ
+  sub : ∀{Γ Δ1 Δ2 t} → Sub Γ Δ1 Δ2 → Tm Γ Δ1 t → Tm Γ Δ2 t
+  subVec : ∀{Γ Δ1 Δ2 Θ} → Sub Γ Δ1 Δ2 → TmVec Γ Δ1 Θ → TmVec Γ Δ2 Θ
 
-  sub1 σ (var1 x) = subVar1 σ x
-  sub1 σ (constr1 c ts es) = constr1 c ts (subVec1 σ es)
+  sub σ (var x) = subVar σ x
+  sub σ (constr c ts es) = constr c ts (subVec σ es)
 
-  subVec1 σ [] = []
-  subVec1 {Θ = (Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
-    sub1 (KeepSub1* (wkSub (Drop* IdRen Γ') σ) Δ') e ∷ subVec1 σ es
+  subVec σ [] = []
+  subVec {Θ = (Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
+    sub (KeepSub* (wkSub (TyDrop* TyIdRen Γ') σ) Δ') e ∷ subVec σ es
 
   -- Substitute the types in a variable
-  subVar01 : ∀{Γ1 Γ2 Δ t} (σ : Sub Γ1 Γ2) → Var1 Γ1 Δ t → Var1 Γ2 (subCtx1 σ Δ) (sub σ t)
-  subVar01 ξ V0 = V0
-  subVar01 ξ (VS x) = VS (subVar01 ξ x)
+  subVarTy : ∀{Γ1 Γ2 Δ t} (σ : TySub Γ1 Γ2) → Var Γ1 Δ t → Var Γ2 (subTyCtx σ Δ) (tySub σ t)
+  subVarTy ξ V0 = V0
+  subVarTy ξ (VS x) = VS (subVarTy ξ x)
 
   -- Substitute the types in a term
-  sub01 : ∀{Γ1 Γ2 Δ t} (σ : Sub Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (subCtx1 σ Δ) (sub σ t)
-  subVec01 : ∀{Γ1 Γ2 Δ Θ} (σ : Sub Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (subCtx1 σ Δ) (subBinders σ Θ)
+  subTy : ∀{Γ1 Γ2 Δ t} (σ : TySub Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (subTyCtx σ Δ) (tySub σ t)
+  subVecTy : ∀{Γ1 Γ2 Δ Θ} (σ : TySub Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (subTyCtx σ Δ) (subBinders σ Θ)
 
-  sub01 σ (var1 x) = var1 (subVar01 σ x)
-  sub01 {Γ1} {Γ2} {Δ} {t} σ (constr1 c ts es) =
-    subst (Tm Γ2 (subCtx1 σ Δ)) (subVecPos₁ σ ts)
-      (constr1 c (subVec σ ts)
-      (subst (TmVec Γ2 (subCtx1 σ Δ))
-        (sym (subVecCtxPos₁ σ ts)) (subVec01 σ es)))
+  subTy σ (var x) = var (subVarTy σ x)
+  subTy {Γ1} {Γ2} {Δ} {t} σ (constr c ts es) =
+    subst (Tm Γ2 (subTyCtx σ Δ)) (subVecTmPos σ ts)
+      (constr c (tySubVec σ ts)
+      (subst (TmVec Γ2 (subTyCtx σ Δ))
+        (sym (subVecCtxTmPos σ ts)) (subVecTy σ es)))
 
-  subVec01 σ [] = [] 
-  subVec01 {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
-    subst (λ x → Tm (Γ' ++ Γ2) x (sub (KeepSub* σ Γ') t)) eq (sub01 (KeepSub* σ Γ') e) ∷ subVec01 σ es
+  subVecTy σ [] = [] 
+  subVecTy {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
+    subst (λ x → Tm (Γ' ++ Γ2) x (tySub (TyKeepSub* σ Γ') t)) eq (subTy (TyKeepSub* σ Γ') e) ∷ subVecTy σ es
     where
-    eq : subCtx1 (KeepSub* σ Γ') (Δ' ++ renCtx1 (Drop* IdRen Γ') Δ) ≡
-         subCtx1 (KeepSub* σ Γ') Δ' ++ renCtx1 (Drop* IdRen Γ') (subCtx1 σ Δ)
+    eq : subTyCtx (TyKeepSub* σ Γ') (Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') Δ) ≡
+         subTyCtx (TyKeepSub* σ Γ') Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') (subTyCtx σ Δ)
     eq =
-      subCtx1 (KeepSub* σ Γ') (Δ' ++ renCtx1 (Drop* IdRen Γ') Δ)
-        ≡⟨ subCtx1++ Δ' (renCtx1 (Drop* IdRen Γ') Δ) ⟩
-      subCtx1 (KeepSub* σ Γ') Δ' ++ subCtx1 (KeepSub* σ Γ') (renCtx1 (Drop* IdRen Γ') Δ)
-        ≡⟨ cong (subCtx1 (KeepSub* σ Γ') Δ' ++_) (
-          subCtx1 (KeepSub* σ Γ') (renCtx1 (Drop* IdRen Γ') Δ)
-            ≡⟨ cong (subCtx1 (KeepSub* σ Γ')) (sym (subCtx1ι (Drop* IdRen Γ') Δ)) ⟩
-          subCtx1 (KeepSub* σ Γ') (subCtx1 (ι (Drop* IdRen Γ')) Δ)
-            ≡⟨ sym (subCtx1◦ (KeepSub* σ Γ') (ι (Drop* IdRen Γ')) Δ) ⟩
-          subCtx1 (KeepSub* σ Γ' ◦ ι (Drop* IdRen Γ')) Δ
-            ≡⟨ cong (flip subCtx1 Δ) (
-              KeepSub* σ Γ' ◦ ι (Drop* IdRen Γ')
-                ≡⟨ cong (KeepSub* σ Γ' ◦_) (sym (Drop*ι IdRen Γ')) ⟩
-              KeepSub* σ Γ' ◦ DropSub* IdSub Γ'
-                ≡⟨ sym (Keep*◦Drop* σ IdSub Γ') ⟩
-              DropSub* (σ ◦ IdSub) Γ'
-                ≡⟨ cong (flip DropSub* Γ') (◦Id σ) ⟩
-              DropSub* σ Γ'
-                ≡⟨ cong (flip DropSub* Γ') (sym (Id◦ σ)) ⟩
-              DropSub* (IdSub ◦ σ) Γ'
-                ≡⟨ Drop*◦ IdSub σ Γ' ⟩
-              DropSub* IdSub Γ' ◦ σ
-                ≡⟨ cong (_◦ σ) (Drop*ι IdRen Γ') ⟩
-              ι (Drop* IdRen Γ') ◦ σ ∎) ⟩
-          subCtx1 (ι (Drop* IdRen Γ') ◦ σ) Δ
-            ≡⟨ subCtx1◦ (ι (Drop* IdRen Γ')) σ Δ ⟩
-          subCtx1 (ι (Drop* IdRen Γ')) (subCtx1 σ Δ)
-            ≡⟨ subCtx1ι (Drop* IdRen Γ') (subCtx1 σ Δ) ⟩
-          renCtx1 (Drop* IdRen Γ') (subCtx1 σ Δ) ∎) ⟩
-      subCtx1 (KeepSub* σ Γ') Δ' ++ renCtx1 (Drop* IdRen Γ') (subCtx1 σ Δ) ∎
+      subTyCtx (TyKeepSub* σ Γ') (Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') Δ)
+        ≡⟨ subTyCtx++ Δ' (renTyCtx (TyDrop* TyIdRen Γ') Δ) ⟩
+      subTyCtx (TyKeepSub* σ Γ') Δ' ++ subTyCtx (TyKeepSub* σ Γ') (renTyCtx (TyDrop* TyIdRen Γ') Δ)
+        ≡⟨ cong (subTyCtx (TyKeepSub* σ Γ') Δ' ++_) (
+          subTyCtx (TyKeepSub* σ Γ') (renTyCtx (TyDrop* TyIdRen Γ') Δ)
+            ≡⟨ cong (subTyCtx (TyKeepSub* σ Γ')) (sym (subTyCtxι (TyDrop* TyIdRen Γ') Δ)) ⟩
+          subTyCtx (TyKeepSub* σ Γ') (subTyCtx (ιₜ (TyDrop* TyIdRen Γ')) Δ)
+            ≡⟨ sym (subTyCtx◦ (TyKeepSub* σ Γ') (ιₜ (TyDrop* TyIdRen Γ')) Δ) ⟩
+          subTyCtx (TyKeepSub* σ Γ' ◦ ιₜ (TyDrop* TyIdRen Γ')) Δ
+            ≡⟨ cong (flip subTyCtx Δ) (
+              TyKeepSub* σ Γ' ◦ ιₜ (TyDrop* TyIdRen Γ')
+                ≡⟨ cong (TyKeepSub* σ Γ' ◦_) (sym (TyDrop*ι TyIdRen Γ')) ⟩
+              TyKeepSub* σ Γ' ◦ TyDropSub* TyIdSub Γ'
+                ≡⟨ sym (TyKeep*◦Drop* σ TyIdSub Γ') ⟩
+              TyDropSub* (σ ◦ TyIdSub) Γ'
+                ≡⟨ cong (flip TyDropSub* Γ') (◦Id σ) ⟩
+              TyDropSub* σ Γ'
+                ≡⟨ cong (flip TyDropSub* Γ') (sym (Id◦ σ)) ⟩
+              TyDropSub* (TyIdSub ◦ σ) Γ'
+                ≡⟨ TyDrop*◦ TyIdSub σ Γ' ⟩
+              TyDropSub* TyIdSub Γ' ◦ σ
+                ≡⟨ cong (_◦ σ) (TyDrop*ι TyIdRen Γ') ⟩
+              ιₜ (TyDrop* TyIdRen Γ') ◦ σ ∎) ⟩
+          subTyCtx (ιₜ (TyDrop* TyIdRen Γ') ◦ σ) Δ
+            ≡⟨ subTyCtx◦ (ιₜ (TyDrop* TyIdRen Γ')) σ Δ ⟩
+          subTyCtx (ιₜ (TyDrop* TyIdRen Γ')) (subTyCtx σ Δ)
+            ≡⟨ subTyCtxι (TyDrop* TyIdRen Γ') (subTyCtx σ Δ) ⟩
+          renTyCtx (TyDrop* TyIdRen Γ') (subTyCtx σ Δ) ∎) ⟩
+      subTyCtx (TyKeepSub* σ Γ') Δ' ++ renTyCtx (TyDrop* TyIdRen Γ') (subTyCtx σ Δ) ∎
+ 
