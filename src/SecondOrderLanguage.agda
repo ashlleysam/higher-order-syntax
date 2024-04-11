@@ -12,34 +12,31 @@ open import Function
 open ≡-Reasoning
 
 open import Common
+open import SecondOrderSignatures
 
-module SecondOrderSyntax
-  -- Types
-  (Typ : Set)
-  -- Constructor shape
-  (Shape : Set)
-  -- Constructor signature
-  (Pos : Shape → List (List Typ × Typ) × Typ)
-  where
+-- The algebra defined by a second-order binding signature
+module SecondOrderLanguage (⅀ : SecondOrderSignature) where
+
+open SecondOrderSignature ⅀
 
 -- Contexts
 Ctx : Set
-Ctx = List Typ
+Ctx = List (⅀ .Knd)
 
 -- In-context variables
-data Var : Ctx → Typ → Set where
+data Var : Ctx → (⅀ .Knd) → Set where
   V0 : ∀{Γ t} → Var (t ∷ Γ) t
   VS : ∀{Γ s t} → Var Γ t → Var (s ∷ Γ) t
 
-data Tm (Γ : Ctx) : Typ → Set
-data TmVec (Γ : Ctx) : List (Ctx × Typ) → Set
+data Tm (Γ : Ctx) : (⅀ .Knd) → Set
+data TmVec (Γ : Ctx) : List (Ctx × (⅀ .Knd)) → Set
 
--- Well-typed terms
+-- Terms
 data Tm Γ where
   var : ∀{t} → Var Γ t → Tm Γ t
-  constr : (c : Shape) (es : TmVec Γ (Pos c .fst)) → Tm Γ (Pos c .snd)
+  constr : (c : ⅀ .TyShape) (es : TmVec Γ (⅀ .TyPos c .fst)) → Tm Γ (⅀ .TyPos c .snd)
 
--- Well-typed lists of terms
+-- Lists of terms
 infixr 5 _∷_
 data TmVec Γ where
   [] : TmVec Γ []
@@ -147,7 +144,7 @@ renVar• (Keep ξ1) (Drop ξ2) x = cong VS (renVar• ξ1 ξ2 x)
 renVar• (Drop ξ1) ξ2 x = cong VS (renVar• ξ1 ξ2 x)
 
 ren• : ∀{Γ1 Γ2 Γ3 t} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
-       (e : Tm Γ1 t) → ren (ξ1 • ξ2) e ≡ ren ξ1 (ren ξ2 e)
+      (e : Tm Γ1 t) → ren (ξ1 • ξ2) e ≡ ren ξ1 (ren ξ2 e)
 renVec• : ∀{Γ1 Γ2 Γ3 Σ} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
           (es : TmVec Γ1 Σ) → renVec (ξ1 • ξ2) es ≡ renVec ξ1 (renVec ξ2 es)
 
@@ -158,10 +155,10 @@ renVec• ξ1 ξ2 [] = refl
 renVec• {Σ = (Δ , t) ∷ Σ} ξ1 ξ2 (e ∷ es) =
   cong₂ _∷_
     (ren (Keep* (ξ1 • ξ2) Δ) e
-       ≡⟨ cong (flip ren e) (Keep*•Keep* Δ) ⟩
-     ren (Keep* ξ1 Δ • Keep* ξ2 Δ) e
-       ≡⟨ ren• (Keep* ξ1 Δ) (Keep* ξ2 Δ) e ⟩
-     ren (Keep* ξ1 Δ) (ren (Keep* ξ2 Δ) e) ∎)
+      ≡⟨ cong (flip ren e) (Keep*•Keep* Δ) ⟩
+    ren (Keep* ξ1 Δ • Keep* ξ2 Δ) e
+      ≡⟨ ren• (Keep* ξ1 Δ) (Keep* ξ2 Δ) e ⟩
+    ren (Keep* ξ1 Δ) (ren (Keep* ξ2 Δ) e) ∎)
     (renVec• ξ1 ξ2 es)
 
 ------------------
@@ -182,7 +179,7 @@ Id•◦ ε = refl
 Id•◦ (σ ▸ e) = cong₂ _▸_ (Id•◦ σ) (renId e)
 
 ••◦ : ∀{Γ1 Γ2 Γ3 Γ4} (ξ1 : Ren Γ3 Γ4) (ξ2 : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
-     (ξ1 • ξ2) •◦ σ ≡ ξ1 •◦ (ξ2 •◦ σ)
+    (ξ1 • ξ2) •◦ σ ≡ ξ1 •◦ (ξ2 •◦ σ)
 ••◦ ξ1 ξ2 ε = refl
 ••◦ ξ1 ξ2 (σ ▸ e) = cong₂ _▸_ (••◦ ξ1 ξ2 σ) (ren• ξ1 ξ2 e)
 
@@ -201,7 +198,7 @@ DropSub* σ [] = σ
 DropSub* σ (t ∷ Δ) = DropSub (DropSub* σ Δ)
 
 Drop•◦ : ∀{Γ1 Γ2 Γ3 t} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
-         DropSub {t = t} (ξ •◦ σ) ≡ Drop ξ •◦ σ
+        DropSub {t = t} (ξ •◦ σ) ≡ Drop ξ •◦ σ
 Drop•◦ ξ σ =
   Drop IdRen •◦ (ξ •◦ σ)
     ≡⟨ sym (••◦ (Drop IdRen) ξ σ) ⟩
@@ -226,25 +223,25 @@ Keep•◦Drop ξ (σ ▸ e) =
   cong₂ _▸_
   (Drop IdRen •◦ ξ •◦ σ
     ≡⟨ sym (••◦ (Drop IdRen) ξ σ) ⟩
-   Drop (IdRen • ξ) •◦ σ
+  Drop (IdRen • ξ) •◦ σ
     ≡⟨ cong (λ x → Drop x •◦ σ) (Id• ξ) ⟩
-   Drop ξ •◦ σ
+  Drop ξ •◦ σ
     ≡⟨ cong (λ x → Drop x •◦ σ) (sym (•Id ξ)) ⟩
-   Drop (ξ • IdRen) •◦ σ
+  Drop (ξ • IdRen) •◦ σ
     ≡⟨ ••◦ (Keep ξ) (Drop IdRen) σ ⟩
-   Keep ξ •◦ Drop IdRen •◦ σ ∎)
+  Keep ξ •◦ Drop IdRen •◦ σ ∎)
   (ren (Drop IdRen) (ren ξ e)
     ≡⟨ sym (ren• (Drop IdRen) ξ e) ⟩
-   ren (Drop (IdRen • ξ)) e
+  ren (Drop (IdRen • ξ)) e
     ≡⟨ cong (λ x → ren (Drop x) e) (Id• ξ) ⟩
-   ren (Drop ξ) e
+  ren (Drop ξ) e
     ≡⟨ cong (λ x → ren (Drop x) e) (sym (•Id ξ)) ⟩
-   ren (Drop (ξ • IdRen)) e
+  ren (Drop (ξ • IdRen)) e
     ≡⟨ ren• (Keep ξ) (Drop IdRen) e ⟩ 
   ren (Keep ξ) (ren (Drop IdRen) e) ∎)
 
 Keep•◦ : ∀{Γ1 Γ2 Γ3 t} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
-         KeepSub {t = t} (ξ •◦ σ) ≡ Keep ξ •◦ KeepSub σ
+        KeepSub {t = t} (ξ •◦ σ) ≡ Keep ξ •◦ KeepSub σ
 Keep•◦ ξ σ = cong (_▸ var V0) (Keep•◦Drop ξ σ)
 
 Keep•◦* : ∀{Γ1 Γ2 Γ3} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
@@ -271,7 +268,7 @@ Keep*ι ξ [] = refl
 Keep*ι ξ (t ∷ Δ) = cong KeepSub (Keep*ι ξ Δ)
 
 •◦ι : ∀{Γ1 Γ2 Γ3} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
-     ξ1 •◦ ι ξ2 ≡ ι (ξ1 • ξ2)
+    ξ1 •◦ ι ξ2 ≡ ι (ξ1 • ξ2)
 •◦ι ε ε = refl
 •◦ι (Keep ξ1) (Keep ξ2) = cong (_▸ var V0) (
   Keep ξ1 •◦ (Drop IdRen •◦ ι ξ2)
@@ -343,7 +340,7 @@ subVar•◦ ξ (σ ▸ e) (VS x) = subVar•◦ ξ σ x
 sub•◦ : ∀{Γ1 Γ2 Γ3 t} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
         (e : Tm Γ1 t) → sub (ξ •◦ σ) e ≡ ren ξ (sub σ e)
 subVec•◦ : ∀{Γ1 Γ2 Γ3 Σ} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
-         (es : TmVec Γ1 Σ) → subVec (ξ •◦ σ) es ≡ renVec ξ (subVec σ es)
+        (es : TmVec Γ1 Σ) → subVec (ξ •◦ σ) es ≡ renVec ξ (subVec σ es)
 
 sub•◦ ξ σ (var x) = subVar•◦ ξ σ x
 sub•◦ ξ σ (constr c es) = cong (constr c) (subVec•◦ ξ σ es)
@@ -353,9 +350,9 @@ subVec•◦ {Σ = (Δ , t) ∷ Σ} ξ σ (e ∷ es) =
   cong₂ _∷_
     (sub (KeepSub* (ξ •◦ σ) Δ) e
       ≡⟨ cong (flip sub e) (Keep•◦* ξ σ Δ) ⟩
-     sub (Keep* ξ Δ •◦ KeepSub* σ Δ) e
+    sub (Keep* ξ Δ •◦ KeepSub* σ Δ) e
       ≡⟨ sub•◦ (Keep* ξ Δ) (KeepSub* σ Δ) e ⟩
-     ren (Keep* ξ Δ) (sub (KeepSub* σ Δ) e) ∎)
+    ren (Keep* ξ Δ) (sub (KeepSub* σ Δ) e) ∎)
     (subVec•◦ ξ σ es)
 
 subVarι : ∀{Γ1 Γ2 t} (ξ : Ren Γ1 Γ2) (x : Var Γ1 t) → subVar (ι ξ) x ≡ var (renVar ξ x)
@@ -383,9 +380,9 @@ subVecι {Σ = (Δ , t) ∷ Σ} ξ (e ∷ es) =
   cong₂ _∷_
     (sub (KeepSub* (ι ξ) Δ) e
       ≡⟨ cong (flip sub e) (Keepι* ξ Δ) ⟩
-     sub (ι (Keep* ξ Δ)) e
+    sub (ι (Keep* ξ Δ)) e
       ≡⟨ subι (Keep* ξ Δ) e ⟩
-     ren (Keep* ξ Δ) e ∎)
+    ren (Keep* ξ Δ) e ∎)
     (subVecι ξ es)
 
 subVarId : ∀{Γ t} (x : Var Γ t) → subVar IdSub x ≡ var x
@@ -411,20 +408,20 @@ _◦•_ : ∀{Γ1 Γ2 Γ3} → Sub Γ2 Γ3 → Ren Γ1 Γ2 → Sub Γ1 Γ3
 ◦•• (σ ▸ e) (Drop ξ1) ξ2 = ◦•• σ ξ1 ξ2
 
 •◦◦• : ∀{Γ1 Γ2 Γ3 Γ4} (ξ1 : Ren Γ3 Γ4) (σ : Sub Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
-       ξ1 •◦ (σ ◦• ξ2) ≡ (ξ1 •◦ σ) ◦• ξ2
+      ξ1 •◦ (σ ◦• ξ2) ≡ (ξ1 •◦ σ) ◦• ξ2
 •◦◦• ξ1 ε ε = refl
 •◦◦• ξ1 (σ ▸ e) (Keep ξ2) = cong (_▸ ren ξ1 e) (•◦◦• ξ1 σ ξ2)
 •◦◦• ξ1 (σ ▸ e) (Drop ξ2) = •◦◦• ξ1 σ ξ2
 
 Drop◦• : ∀{Γ1 Γ2 Γ3 t} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
-         DropSub {t = t} (σ ◦• ξ) ≡ DropSub σ ◦• ξ
+        DropSub {t = t} (σ ◦• ξ) ≡ DropSub σ ◦• ξ
 Drop◦• ε ε = refl
 Drop◦• (σ ▸ e) (Keep ξ) =
   cong (_▸ ren (Drop IdRen) e) (•◦◦• (Drop IdRen) σ ξ)
 Drop◦• (σ ▸ e) (Drop ξ) = •◦◦• (Drop IdRen) σ ξ
 
 Keep◦• : ∀{Γ1 Γ2 Γ3 t} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
-         KeepSub {t = t} (σ ◦• ξ) ≡ KeepSub σ ◦• Keep ξ
+        KeepSub {t = t} (σ ◦• ξ) ≡ KeepSub σ ◦• Keep ξ
 Keep◦• ε ε = refl
 Keep◦• (σ ▸ e) (Keep ξ) =
   cong (_▸ var V0)
@@ -482,7 +479,7 @@ subVec◦• {Σ = (Δ , t) ∷ Σ} ξ σ (e ∷ es) =
       ≡⟨ cong (flip sub e) (Keep*◦• ξ σ Δ) ⟩
     sub (KeepSub* ξ Δ ◦• Keep* σ Δ) e
       ≡⟨ sub◦• (KeepSub* ξ Δ) (Keep* σ Δ) e ⟩
-     sub (KeepSub* ξ Δ) (ren (Keep* σ Δ) e) ∎)
+    sub (KeepSub* ξ Δ) (ren (Keep* σ Δ) e) ∎)
     (subVec◦• ξ σ es)
 
 infixr 9 _◦_ 
@@ -491,7 +488,7 @@ _◦_ : ∀{Γ1 Γ2 Γ3} → Sub Γ2 Γ3 → Sub Γ1 Γ2 → Sub Γ1 Γ3
 σ1 ◦ (σ2 ▸ e) = (σ1 ◦ σ2) ▸ sub σ1 e
 
 •◦◦ : ∀{Γ1 Γ2 Γ3 Γ4} (ξ : Ren Γ3 Γ4) (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-       ξ •◦ (σ1 ◦ σ2) ≡ (ξ •◦ σ1) ◦ σ2
+      ξ •◦ (σ1 ◦ σ2) ≡ (ξ •◦ σ1) ◦ σ2
 •◦◦ ξ σ1 ε = refl
 •◦◦ ξ σ1 (σ2 ▸ e) = cong₂ _▸_ (•◦◦ ξ σ1 σ2) (sym (sub•◦ ξ σ1 e))
 
@@ -521,7 +518,7 @@ _◦_ : ∀{Γ1 Γ2 Γ3} → Sub Γ2 Γ3 → Sub Γ1 Γ2 → Sub Γ1 Γ3
   σ ◦• ξ ∎
 
 ι◦ : ∀{Γ1 Γ2 Γ3} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
-     ι ξ ◦ σ ≡ ξ •◦ σ
+    ι ξ ◦ σ ≡ ξ •◦ σ
 ι◦ ξ ε = refl
 ι◦ ξ (σ ▸ e) = cong₂ _▸_ (ι◦ ξ σ) (subι ξ e)
 
@@ -579,7 +576,7 @@ Keep◦ σ1 (σ2 ▸ e) = cong (_▸ var V0) (cong₂ _▸_
   sub (KeepSub σ1) (ren (Drop IdRen) e) ∎))
 
 Keep*◦ : ∀{Γ1 Γ2 Γ3} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-         ∀ Δ → KeepSub* (σ1 ◦ σ2) Δ ≡ KeepSub* σ1 Δ ◦ KeepSub* σ2 Δ
+        ∀ Δ → KeepSub* (σ1 ◦ σ2) Δ ≡ KeepSub* σ1 Δ ◦ KeepSub* σ2 Δ
 Keep*◦ σ1 σ2 [] = refl
 Keep*◦ σ1 σ2 (t ∷ Δ) =
   KeepSub (KeepSub* (σ1 ◦ σ2) Δ)
@@ -597,7 +594,7 @@ Drop◦ σ1 (σ2 ▸ e) =
     (sym (sub•◦ (Drop IdRen) σ1 e))
 
 Drop*◦ : ∀{Γ1 Γ2 Γ3} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-         ∀ Δ → DropSub* (σ1 ◦ σ2) Δ ≡ DropSub* σ1 Δ ◦ σ2
+        ∀ Δ → DropSub* (σ1 ◦ σ2) Δ ≡ DropSub* σ1 Δ ◦ σ2
 Drop*◦ σ1 σ2 [] = refl
 Drop*◦ σ1 σ2 (t ∷ Δ) = 
   DropSub (DropSub* (σ1 ◦ σ2) Δ)
@@ -607,18 +604,18 @@ Drop*◦ σ1 σ2 (t ∷ Δ) =
   DropSub (DropSub* σ1 Δ) ◦ σ2 ∎
 
 subVar◦ : ∀{Γ1 Γ2 Γ3 t} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-         subVar {t = t} (σ1 ◦ σ2) ≈ sub σ1 ∘ subVar σ2
+        subVar {t = t} (σ1 ◦ σ2) ≈ sub σ1 ∘ subVar σ2
 subVar◦ σ1 (σ2 ▸ e) V0 = refl
 subVar◦ σ1 (σ2 ▸ e) (VS x) = subVar◦ σ1 σ2 x
 
 sub◦ : ∀{Γ1 Γ2 Γ3 t} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-       sub {t = t} (σ1 ◦ σ2) ≈ sub σ1 ∘ sub σ2
+      sub {t = t} (σ1 ◦ σ2) ≈ sub σ1 ∘ sub σ2
 subVec◦ : ∀{Γ1 Γ2 Γ3 Σ} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-       subVec {Σ = Σ} (σ1 ◦ σ2) ≈ subVec σ1 ∘ subVec σ2
+      subVec {Σ = Σ} (σ1 ◦ σ2) ≈ subVec σ1 ∘ subVec σ2
 
 sub◦ σ1 σ2 (var x) = subVar◦ σ1 σ2 x
 sub◦ σ1 σ2 (constr c es) = cong (constr c) (subVec◦ σ1 σ2 es)
- 
+
 subVec◦ σ1 σ2 [] = refl 
 subVec◦ {Σ = (Δ , t) ∷ Σ} σ1 σ2 (e ∷ es) =
   cong₂ _∷_
@@ -633,7 +630,8 @@ subVec◦ {Σ = (Δ , t) ∷ Σ} σ1 σ2 (e ∷ es) =
 -- META-TERMS --
 ----------------
 
-MTyp = Ctx × Typ
+MTyp : Set
+MTyp = Ctx × ⅀ .Knd
 
 MCtx : Set
 MCtx = List MTyp
@@ -643,11 +641,11 @@ data MVar : MCtx → MTyp → Set where
   MVS : ∀{Γ s t} (x : MVar Γ t) → MVar (s ∷ Γ) t
 
 data MTm (Γ : MCtx) : MTyp → Set
-data MTmVec (Γ : MCtx) : List (Ctx × Typ) → Set
+data MTmVec (Γ : MCtx) : List (Ctx × (⅀ .Knd)) → Set
 
 data MTm Γ where
   mvar : ∀{t} (x : MVar Γ t) → MTm Γ t
-  mconstr : (c : Shape) (es : MTmVec Γ (Pos c .fst)) → MTm Γ ([] , Pos c .snd)
+  mconstr : (c : ⅀ .TyShape) (es : MTmVec Γ (⅀ .TyPos c .fst)) → MTm Γ ([] , ⅀ .TyPos c .snd)
   inst : ∀{Δ s t} (e : MTm Γ ((s ∷ Δ) , t)) (v : MTm Γ ([] , s)) → MTm Γ (Δ , t)
 
 _⟨_⟩ : ∀{Γ Δ s t} (e : MTm Γ ((s ∷ Δ) , t)) (v : MTm Γ ([] , s)) → MTm Γ (Δ , t)
@@ -666,7 +664,7 @@ tmVec++ η [] = η
 tmVec++ η (t ∷ Δ) = var V0 ∷ renVec (Drop IdRen) (tmVec++ η Δ)
 
 tmVec++∘subVec : ∀{Σ Γ1 Γ2} (η : TmVec Γ1 Σ) (Δ : Ctx) (σ : Sub Γ1 Γ2) →
-             tmVec++ (subVec σ η) Δ ≡ subVec (KeepSub* σ Δ) (tmVec++ η Δ)
+            tmVec++ (subVec σ η) Δ ≡ subVec (KeepSub* σ Δ) (tmVec++ η Δ)
 tmVec++∘subVec η [] σ = refl
 tmVec++∘subVec η (t ∷ Δ) σ = cong (var V0 ∷_) (
   renVec (Drop IdRen) (tmVec++ (subVec σ η) Δ)
@@ -696,9 +694,9 @@ interpVec (_∷_ {Δ} e es) η =
   interpVec es η
 
 interpVarSub : ∀{Σ Δ Γ1 Γ2 t} (x : MVar Σ (Δ , t)) (η : TmVec Γ1 Σ) (σ : Sub Γ1 Γ2)
-               (σ1 : Sub (Δ ++ Γ2) Γ2) (σ2 : Sub (Δ ++ Γ1) Γ1) →
-               σ1 ◦ KeepSub* σ Δ ≡ σ ◦ σ2 →
-               interpVar x (subVec σ η) σ1 ≡ sub σ (interpVar x η σ2)
+              (σ1 : Sub (Δ ++ Γ2) Γ2) (σ2 : Sub (Δ ++ Γ1) Γ1) →
+              σ1 ◦ KeepSub* σ Δ ≡ σ ◦ σ2 →
+              interpVar x (subVec σ η) σ1 ≡ sub σ (interpVar x η σ2)
 interpVarSub {Δ = Δ} MV0 (e ∷ η) σ σ1 σ2 eq =
   sub σ1 (sub (KeepSub* σ Δ) e) ≡⟨ sym (sub◦ σ1 (KeepSub* σ Δ) e) ⟩
   sub (σ1 ◦ KeepSub* σ Δ) e     ≡⟨ cong (flip sub e) eq ⟩
@@ -707,11 +705,11 @@ interpVarSub {Δ = Δ} MV0 (e ∷ η) σ σ1 σ2 eq =
 interpVarSub (MVS x) (e ∷ η) σ σ1 σ2 eq = interpVarSub x η σ σ1 σ2 eq
 
 interpTmSub : ∀{Σ Δ Γ1 Γ2 t} (e : MTm Σ (Δ , t)) (η : TmVec Γ1 Σ) (σ : Sub Γ1 Γ2)
-               (σ1 : Sub (Δ ++ Γ2) Γ2) (σ2 : Sub (Δ ++ Γ1) Γ1) →
-               σ1 ◦ KeepSub* σ Δ ≡ σ ◦ σ2 →
-               interpTm e (subVec σ η) σ1 ≡ sub σ (interpTm e η σ2)
+              (σ1 : Sub (Δ ++ Γ2) Γ2) (σ2 : Sub (Δ ++ Γ1) Γ1) →
+              σ1 ◦ KeepSub* σ Δ ≡ σ ◦ σ2 →
+              interpTm e (subVec σ η) σ1 ≡ sub σ (interpTm e η σ2)
 interpVecSub : ∀{Σ Γ1 Γ2 Δ} (es : MTmVec Σ Δ) (η : TmVec Γ1 Σ) (σ : Sub Γ1 Γ2) →
-               interpVec es (subVec σ η) ≡ subVec σ (interpVec es η)
+              interpVec es (subVec σ η) ≡ subVec σ (interpVec es η)
 
 interpTmSub (mvar x) η σ σ1 σ2 eq = interpVarSub x η σ σ1 σ2 eq
 interpTmSub (mconstr c es) η σ σ1 σ2 eq = cong (constr c) (interpVecSub es η σ)
@@ -722,7 +720,7 @@ interpTmSub (inst {Δ} e v) η σ σ1 σ2 eq =
     (cong₂ _▸_
       ((σ1 ▸ interpTm v (subVec σ η) IdSub) ◦ Drop IdRen •◦ KeepSub* σ Δ
           ≡⟨ ◦•◦ (σ1 ▸ interpTm v (subVec σ η) IdSub) (Drop IdRen) (KeepSub* σ Δ) ⟩
-       (σ1 ◦• IdRen) ◦ KeepSub* σ Δ
+      (σ1 ◦• IdRen) ◦ KeepSub* σ Δ
           ≡⟨ cong (_◦ KeepSub* σ Δ) (◦•Id σ1) ⟩
         σ1 ◦ KeepSub* σ Δ
           ≡⟨ eq ⟩
