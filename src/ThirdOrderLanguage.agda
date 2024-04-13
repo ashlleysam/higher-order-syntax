@@ -22,15 +22,15 @@ open import ThirdOrderSignatures
 module ThirdOrderLanguage (⅀ : ThirdOrderSignature) where
 
 open ThirdOrderSignature ⅀
-open import SecondOrderContexts (⅀ .⅀₂) (⅀ .*) public
+open import SecondOrderContexts (⅀ .⅀₂) public
 
 -- In-context variables
-data Var : (Γ : KndCtx) (Δ : Ctx Γ) → Typ* Γ → Set where
-  V0 : ∀{Γ Δ} {t : Typ* Γ} → Var Γ (t ∷ Δ) t
-  VS : ∀{Γ Δ} {t s : Typ* Γ} → Var Γ Δ t → Var Γ (s ∷ Δ) t
+data Var : (Γ : KndCtx) (Δ : Ctx Γ) → Typ Γ → Set where
+  V0 : ∀{Γ Δ} {t : Typ Γ} → Var Γ (t ∷ Δ) t
+  VS : ∀{Γ Δ} {t s : Typ Γ} → Var Γ Δ t → Var Γ (s ∷ Δ) t
 
-data Tm (Γ : KndCtx) (Δ : Ctx Γ) : Typ* Γ → Set
-data TmVec (Γ : KndCtx) (Δ : Ctx Γ) : List (Σ[ Γ' ∈ KndCtx ] (Ctx (Γ' ++ Γ) × Typ* (Γ' ++ Γ))) → Set
+data Tm (Γ : KndCtx) (Δ : Ctx Γ) : Typ Γ → Set
+data TmVec (Γ : KndCtx) (Δ : Ctx Γ) : List (Σ[ Γ' ∈ KndCtx ] (Ctx (Γ' ++ Γ) × Typ (Γ' ++ Γ))) → Set
 
 -- Well-typed terms
 data Tm Γ Δ where
@@ -115,12 +115,12 @@ renVec {Γ} {Δ1} {Δ2} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
   ren (Keep* (KeepTy* ξ Γ') Δ') e ∷ renVec ξ es
 
 -- Rename the types in a variable
-renVarTy : ∀{Γ1 Γ2 Δ t} (ξ : TyRen Γ1 Γ2) → Var Γ1 Δ t → Var Γ2 (renCtx ξ Δ) (tyRen ξ t)
+renVarTy : ∀{Γ1 Γ2 Δ t} (ξ : TyRen Γ1 Γ2) → Var Γ1 Δ t → Var Γ2 (renCtx ξ Δ) (renTyp ξ t)
 renVarTy ξ V0 = V0 
 renVarTy ξ (VS x) = VS (renVarTy ξ x)
 
 -- Rename the types in a term
-renTy : ∀{Γ1 Γ2 Δ t} (ξ : TyRen Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (renCtx ξ Δ) (tyRen ξ t)
+renTy : ∀{Γ1 Γ2 Δ t} (ξ : TyRen Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (renCtx ξ Δ) (renTyp ξ t)
 renVecTy : ∀{Γ1 Γ2 Δ Θ} (ξ : TyRen Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (renCtx ξ Δ) (renBinders ξ Θ)
 
 renTy ξ (var x) = var (renVarTy ξ x)
@@ -132,7 +132,7 @@ renTy {Γ1} {Γ2} {Δ} ξ (constr c ts es) =
 
 renVecTy ξ [] = [] 
 renVecTy {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
-  subst (λ x → Tm (Γ' ++ Γ2) x (tyRen (TyKeep* ξ Γ') t)) eq (renTy (TyKeep* ξ Γ') e) ∷ renVecTy ξ es
+  subst (λ x → Tm (Γ' ++ Γ2) x (renTyp (TyKeep* ξ Γ') t)) eq (renTy (TyKeep* ξ Γ') e) ∷ renVecTy ξ es
   where
   eq : renCtx (TyKeep* ξ Γ') (Δ' ++ renCtx (TyDrop* TyIdRen Γ') Δ) ≡
        renCtx (TyKeep* ξ Γ') Δ' ++ renCtx (TyDrop* TyIdRen Γ') (renCtx ξ Δ)
@@ -213,12 +213,12 @@ subVec {Θ = (Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
   sub (KeepSub* (wkSub (TyDrop* TyIdRen Γ') σ) Δ') e ∷ subVec σ es
 
 -- Substitute the types in a variable
-subVarTy : ∀{Γ1 Γ2 Δ t} (σ : TySub Γ1 Γ2) → Var Γ1 Δ t → Var Γ2 (subCtx σ Δ) (tySub σ t)
+subVarTy : ∀{Γ1 Γ2 Δ t} (σ : TySub Γ1 Γ2) → Var Γ1 Δ t → Var Γ2 (subCtx σ Δ) (subTyp σ t)
 subVarTy ξ V0 = V0
 subVarTy ξ (VS x) = VS (subVarTy ξ x)
 
 -- Substitute the types in a term
-subTy : ∀{Γ1 Γ2 Δ t} (σ : TySub Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (subCtx σ Δ) (tySub σ t)
+subTy : ∀{Γ1 Γ2 Δ t} (σ : TySub Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (subCtx σ Δ) (subTyp σ t)
 subVecTy : ∀{Γ1 Γ2 Δ Θ} (σ : TySub Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (subCtx σ Δ) (subBinders σ Θ)
 
 subTy σ (var x) = var (subVarTy σ x)
@@ -230,7 +230,7 @@ subTy {Γ1} {Γ2} {Δ} {t} σ (constr c ts es) =
 
 subVecTy σ [] = [] 
 subVecTy {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
-  subst (λ x → Tm (Γ' ++ Γ2) x (tySub (TyKeepSub* σ Γ') t)) eq (subTy (TyKeepSub* σ Γ') e) ∷ subVecTy σ es
+  subst (λ x → Tm (Γ' ++ Γ2) x (subTyp (TyKeepSub* σ Γ') t)) eq (subTy (TyKeepSub* σ Γ') e) ∷ subVecTy σ es
   where
   eq : subCtx (TyKeepSub* σ Γ') (Δ' ++ renCtx (TyDrop* TyIdRen Γ') Δ) ≡
        subCtx (TyKeepSub* σ Γ') Δ' ++ renCtx (TyDrop* TyIdRen Γ') (subCtx σ Δ)

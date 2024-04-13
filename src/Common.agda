@@ -26,6 +26,12 @@ cong-sym : ∀{a b} {A : Set a} {B : Set b} {x y : A}
            cong f (sym p) ≡ sym (cong f p)
 cong-sym f refl = refl
 
+cong₃ : ∀{a b c d} {A : Set a} {B : Set b} {C : Set c} {D : Set d}
+        {x1 x2 : A} {y1 y2 : B} {z1 z2 : C} →
+        (f : A → B → C → D) → x1 ≡ x2 → y1 ≡ y2 → z1 ≡ z2 →
+        f x1 y1 z1 ≡ f x2 y2 z2
+cong₃ f refl refl refl = refl
+
 -- Custom equational reasoning for functions
 module FunExt {a b} {A : Set a} {B : Set b} where
   ≗-refl : {f : A → B} → f ≗ f
