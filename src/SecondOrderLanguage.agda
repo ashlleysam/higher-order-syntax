@@ -604,14 +604,14 @@ Drop*◦ σ1 σ2 (t ∷ Δ) =
   DropSub (DropSub* σ1 Δ) ◦ σ2 ∎
 
 subVar◦ : ∀{Γ1 Γ2 Γ3 t} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-        subVar {t = t} (σ1 ◦ σ2) ≈ sub σ1 ∘ subVar σ2
+        subVar {t = t} (σ1 ◦ σ2) ≗ sub σ1 ∘ subVar σ2
 subVar◦ σ1 (σ2 ▸ e) V0 = refl
 subVar◦ σ1 (σ2 ▸ e) (VS x) = subVar◦ σ1 σ2 x
 
 sub◦ : ∀{Γ1 Γ2 Γ3 t} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-      sub {t = t} (σ1 ◦ σ2) ≈ sub σ1 ∘ sub σ2
+      sub {t = t} (σ1 ◦ σ2) ≗ sub σ1 ∘ sub σ2
 subVec◦ : ∀{Γ1 Γ2 Γ3 Σ} (σ1 : Sub Γ2 Γ3) (σ2 : Sub Γ1 Γ2) →
-      subVec {Σ = Σ} (σ1 ◦ σ2) ≈ subVec σ1 ∘ subVec σ2
+      subVec {Σ = Σ} (σ1 ◦ σ2) ≗ subVec σ1 ∘ subVec σ2
 
 sub◦ σ1 σ2 (var x) = subVar◦ σ1 σ2 x
 sub◦ σ1 σ2 (constr c es) = cong (constr c) (subVec◦ σ1 σ2 es)

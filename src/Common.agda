@@ -27,36 +27,32 @@ cong-sym : ∀{a b} {A : Set a} {B : Set b} {x y : A}
 cong-sym f refl = refl
 
 -- Custom equational reasoning for functions
-module FunExt {a b} {A : Set a} {B : A → Set b} where
-  infix 4 _≈_
-  _≈_ : (f g : (x : A) → B x) → Set (ℓ-max a b)
-  f ≈ g = ∀ x → f x ≡ g x
+module FunExt {a b} {A : Set a} {B : Set b} where
+  ≗-refl : {f : A → B} → f ≗ f
+  ≗-refl x = refl
 
-  ≈-refl : Reflexive _≈_
-  ≈-refl x = refl
+  ≗-sym : {f g : A → B} → f ≗ g → g ≗ f
+  ≗-sym p x = sym (p x)
 
-  ≈-sym : Symmetric _≈_
-  ≈-sym p x = sym (p x)
-
-  ≈-trans : Transitive _≈_
-  ≈-trans p q x = trans (p x) (q x)
+  ≗-trans : {f g h : A → B} → f ≗ g → g ≗ h → f ≗ h
+  ≗-trans p q x = p x ∙ q x
 
   infix  3 _∎'
-  infixr 2 _≈⟨⟩_ step-≈ step-≈˘
+  infixr 2 _≗⟨⟩_ step-≗ step-≗⁻
 
-  _≈⟨⟩_ : ∀ (x {y} : (x : A) → B x) → x ≈ y → x ≈ y
-  _ ≈⟨⟩ x≡y = x≡y
+  _≗⟨⟩_ : ∀ (x {y} : A → B) → x ≗ y → x ≗ y
+  _ ≗⟨⟩ x≡y = x≡y
 
-  step-≈ : ∀ (x {y z} : (x : A) → B x) → y ≈ z → x ≈ y → x ≈ z
-  step-≈ _ y≡z x≡y = ≈-trans x≡y y≡z
+  step-≗ : ∀ (x {y z} : A → B) → y ≗ z → x ≗ y → x ≗ z
+  step-≗ _ y≡z x≡y = ≗-trans x≡y y≡z
 
-  step-≈˘ : ∀ (x {y z} : (x : A) → B x) → y ≈ z → y ≈ x → x ≈ z
-  step-≈˘ _ y≡z y≡x = ≈-trans (≈-sym y≡x) y≡z
+  step-≗⁻ : ∀ (x {y z} : A → B) → y ≗ z → y ≗ x → x ≗ z
+  step-≗⁻ _ y≡z y≡x = ≗-trans (≗-sym y≡x) y≡z
 
-  _∎' : ∀ (x : (x : A) → B x) → x ≈ x
-  _∎' _ = ≈-refl
+  _∎' : ∀ (x : A → B) → x ≗ x
+  _∎' _ = ≗-refl
 
-  syntax step-≈  x y≡z x≡y = x ≈⟨  x≡y ⟩ y≡z
-  syntax step-≈˘ x y≡z y≡x = x ≈˘⟨ y≡x ⟩ y≡z
+  syntax step-≗  x y≡z x≡y = x ≗⟨  x≡y ⟩ y≡z
+  syntax step-≗⁻ x y≡z y≡x = x ≗⁻⟨ y≡x ⟩ y≡z
 
 open FunExt public

@@ -27,7 +27,7 @@ open SecondOrderSignature ⅀
 -}
 open import SecondOrderLanguage ⅀ public
   renaming (Tm to Ty; TmVec to TyVec; Var to TyVar; var to tyVar; constr to tyConstr;
-          Ren to TyRen; IdRen to TyIdRen; Keep* to TyKeep*; Keep*•Drop* to TyKeep*•Drop*;
+          Ren to TyRen; IdRen to TyIdRen; Keep to TyKeep; Keep* to TyKeep*; Keep*•Drop* to TyKeep*•Drop*;
           Keep*◦Drop* to TyKeep*◦Drop*; Drop to TyDrop; Drop* to TyDrop*; Drop*• to TyDrop*•;
           Drop*ι to TyDrop*ι; Drop*◦ to TyDrop*◦; renVar to tyRenVar; ren to tyRen; renVec to tyRenVec;
           Sub to TySub; _•◦_ to _•◦ₜ_; DropSub to TyDropSub; DropSub* to TyDropSub*;
@@ -56,7 +56,7 @@ renCtxId [] = refl
 renCtxId (t ∷ Δ) = cong₂ _∷_ (renId t) (renCtxId Δ)
 
 renCtx• : ∀{Γ1 Γ2 Γ3} (ξ1 : TyRen Γ2 Γ3) (ξ2 : TyRen Γ1 Γ2) →
-          renCtx (ξ1 • ξ2) ≈ renCtx ξ1 ∘ renCtx ξ2
+          renCtx (ξ1 • ξ2) ≗ renCtx ξ1 ∘ renCtx ξ2
 renCtx• ξ1 ξ2 [] = refl
 renCtx• ξ1 ξ2 (t ∷ Δ) = cong₂ _∷_ (ren• ξ1 ξ2 t) (renCtx• ξ1 ξ2 Δ)
 
@@ -74,12 +74,12 @@ subCtxId [] = refl
 subCtxId (t ∷ Δ) = cong₂ _∷_ (subId t) (subCtxId Δ)
 
 subCtx◦ : ∀{Γ1 Γ2 Γ3} (σ1 : TySub Γ2 Γ3) (σ2 : TySub Γ1 Γ2) →
-           subCtx (σ1 ◦ σ2) ≈ subCtx σ1 ∘ subCtx σ2
+           subCtx (σ1 ◦ σ2) ≗ subCtx σ1 ∘ subCtx σ2
 subCtx◦ σ1 σ2 [] = refl
 subCtx◦ σ1 σ2 (t ∷ Δ) = cong₂ _∷_ (sub◦ σ1 σ2 t) (subCtx◦ σ1 σ2 Δ)
 
 subCtxι : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) →
-           subCtx (ιₜ ξ) ≈ renCtx ξ
+           subCtx (ιₜ ξ) ≗ renCtx ξ
 subCtxι ξ [] = refl
 subCtxι ξ (t ∷ Δ) = cong₂ _∷_ (subι ξ t) (subCtxι ξ Δ)
 

@@ -22,7 +22,7 @@ open import ThirdOrderSignatures
 module ThirdOrderLanguage (⅀ : ThirdOrderSignature) where
 
 open ThirdOrderSignature ⅀
-open import SecondOrderContexts (⅀ .⅀₂) (⅀ .*)
+open import SecondOrderContexts (⅀ .⅀₂) (⅀ .*) public
 
 -- In-context variables
 data Var : (Γ : KndCtx) (Δ : Ctx Γ) → Typ* Γ → Set where
