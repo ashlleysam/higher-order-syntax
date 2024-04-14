@@ -32,7 +32,9 @@ open import SecondOrderLanguage ⅀ public
           Drop*ι to TyDrop*ι; Drop*◦ to TyDrop*◦; renVar to tyRenVar; ren to tyRen; renVec to tyRenVec;
           Sub to TySub; _•◦_ to _•◦ₜ_; DropSub to TyDropSub; DropSub* to TyDropSub*;
           KeepSub to TyKeepSub; KeepSub* to TyKeepSub*; ι to ιₜ; IdSub to TyIdSub; subVec to tySubVec;
-          subVar to tySubVar; sub to tySub; Ctx to KndCtx; MCtx to MKndCtx; V0 to TV0; VS to TVS)
+          subVar to tySubVar; sub to tySub; Ctx to KndCtx; MCtx to MKndCtx; V0 to TV0; VS to TVS;
+          sub◦ to tySub◦; substV0 to substTyV0; substVS to substTyVS; substVar to substTyVar;
+          substConstr to substTyConstr; substNil to substTyNil; substCons to substTyCons)
 
 -- Types of any kind
 Typ : KndCtx → Set
@@ -91,7 +93,7 @@ subCtxId (t ∷ Δ) = cong₂ _∷_ (subTypId t) (subCtxId Δ)
 
 subTypId◦ : ∀{Γ1 Γ2 Γ3} (σ1 : TySub Γ2 Γ3) (σ2 : TySub Γ1 Γ2) →
             subTyp (σ1 ◦ σ2) ≗ subTyp σ1 ∘ subTyp σ2
-subTypId◦ σ1 σ2 (κ , t) = Σ-≡,≡↔≡ .Inverse.f (refl , sub◦ σ1 σ2 t)
+subTypId◦ σ1 σ2 (κ , t) = Σ-≡,≡↔≡ .Inverse.f (refl , tySub◦ σ1 σ2 t)
 
 subCtx◦ : ∀{Γ1 Γ2 Γ3} (σ1 : TySub Γ2 Γ3) (σ2 : TySub Γ1 Γ2) →
            subCtx (σ1 ◦ σ2) ≗ subCtx σ1 ∘ subCtx σ2

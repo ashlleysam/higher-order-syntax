@@ -34,7 +34,7 @@ data TmVec (Γ : Ctx) : List (Ctx × (⅀ .Knd)) → Set
 -- Terms
 data Tm Γ where
   var : ∀{t} → Var Γ t → Tm Γ t
-  constr : (c : ⅀ .TyShape) (es : TmVec Γ (⅀ .TyPos c .fst)) → Tm Γ (⅀ .TyPos c .snd)
+  constr : (s : ⅀ .TyShape) (es : TmVec Γ (⅀ .TyPos s .fst)) → Tm Γ (⅀ .TyPos s .snd)
 
 -- Lists of terms
 infixr 5 _∷_
@@ -44,6 +44,56 @@ data TmVec Γ where
         (e : Tm (Δ ++ Γ) t) →
         (es : TmVec Γ Σ) →
         TmVec Γ ((Δ , t) ∷ Σ)
+
+----------------------
+-- BASIC PROPERTIES --
+----------------------
+
+-- Injectivity of constructors
+VS-inj : ∀{Γ s t x y} → VS {Γ} {s} {t} x ≡ VS y → x ≡ y
+VS-inj refl = refl
+
+var-inj : ∀{Γ t x y} → var {Γ} {t} x ≡ var y → x ≡ y 
+var-inj refl = refl
+
+constr-inj : ∀{Γ s es1 es2} → constr {Γ} s es1 ≡ constr s es2 → es1 ≡ es2
+constr-inj refl = refl
+
+cons-inj : ∀{Γ Δ t Σ e1 e2 es1 es2} →
+           _≡_ {A = TmVec Γ ((Δ , t) ∷ Σ)} (e1 ∷ es1) (e2 ∷ es2) →  
+           e1 ≡ e2 × es1 ≡ es2
+cons-inj refl = refl , refl
+
+-- How substitution acts on variables
+substV0 : ∀{Γ1 Γ2 t} (p : t ∷ Γ1 ≡ t ∷ Γ2) →
+           V0 ≡ subst (flip Var t) p V0
+substV0 refl = refl
+
+substVS : ∀{Γ1 Γ2 t t'} (p : Γ1 ≡ Γ2) (x : Var Γ1 t) →
+          VS (subst (flip Var t) p x) ≡
+          subst (flip Var t) (cong (t' ∷_) p) (VS x)
+substVS refl x = refl
+
+-- How substitution acts on terms
+substVar : ∀{Γ1 Γ2 t} (p : Γ1 ≡ Γ2) (x : Var Γ1 t) →
+          var (subst (flip Var t) p x) ≡
+           subst (flip Tm t) p (var x)
+substVar refl x = refl
+
+substConstr : ∀{Γ1 Γ2 s} (p : Γ1 ≡ Γ2) (ts : TmVec Γ1 (⅀ .TyPos s .fst)) →
+              constr s (subst (flip TmVec (⅀ .TyPos s .fst)) p ts) ≡
+              subst (flip Tm (⅀ .TyPos s .snd)) p (constr s ts)
+substConstr refl ts = refl
+
+-- How substitution acts on term vectors
+substNil : ∀{Γ1 Γ2} (p : Γ1 ≡ Γ2) →
+           [] ≡ subst (flip TmVec []) p []
+substNil refl = refl
+
+substCons : ∀{Σ Δ Γ1 Γ2 t} (p : Γ1 ≡ Γ2) (e : Tm (Δ ++ Γ1) t) (es : TmVec Γ1 Σ) →
+              subst (flip Tm t) (cong (Δ ++_) p) e ∷ subst (flip TmVec Σ) p es ≡
+              subst (flip TmVec ((Δ , t) ∷ Σ)) p (e ∷ es)
+substCons refl e es = refl
 
 --------------
 -- RENAMING --
