@@ -59,20 +59,20 @@ record ThirdOrderSignature : Set₁ where
     Essentially guarantees that the arguments Γ and ts in the
     term part of the constructor signature is used uniformly
     -}
-    subVecTmPos : ∀{Γ1 Γ2 c} (σ : TySub' Γ1 Γ2) (ts : TyVec' Γ1 (TmTyPos c)) →
-                  TmPos c Γ2 (tySubVec' σ ts) .snd ≡ subTyp' σ (TmPos c Γ1 ts .snd)
+    subVecTmPos : ∀{Γ1 Γ2} (s : Shape) (σ : TySub' Γ1 Γ2) (ts : TyVec' Γ1 (TmTyPos s)) →
+                  TmPos s Γ2 (tySubVec' σ ts) .snd ≡ subTyp' σ (TmPos s Γ1 ts .snd)
 
-    subVecKndCtxTmPos : ∀{Γ1 Γ2 c} (σ : TySub' Γ1 Γ2) (ts : TyVec' Γ1 (TmTyPos c)) →
-                    TmPos c Γ2 (tySubVec' σ ts) .fst ≡ subBinders' σ (TmPos c Γ1 ts .fst)
+    subVecKndCtxTmPos : ∀{Γ1 Γ2} (s : Shape) (σ : TySub' Γ1 Γ2) (ts : TyVec' Γ1 (TmTyPos s)) →
+                        TmPos s Γ2 (tySubVec' σ ts) .fst ≡ subBinders' σ (TmPos s Γ1 ts .fst)
 
   -- Derived coherence requirements for renaming
-  renVecTmPos : ∀{Γ1 Γ2 c} (ξ : TyRen' Γ1 Γ2) (ts : TyVec' Γ1 (TmTyPos c)) →
-                TmPos c Γ2 (tyRenVec' ξ ts) .snd ≡ renTyp' ξ (TmPos c Γ1 ts .snd)
+  renVecTmPos : ∀{Γ1 Γ2 s} (ξ : TyRen' Γ1 Γ2) (ts : TyVec' Γ1 (TmTyPos s)) →
+                TmPos s Γ2 (tyRenVec' ξ ts) .snd ≡ renTyp' ξ (TmPos s Γ1 ts .snd)
   renVecTmPos {Γ1} {Γ2} {s} ξ ts =
     TmPos s Γ2 (tyRenVec' ξ ts) .snd
       ≡⟨ sym (cong (λ x → TmPos s Γ2 x .snd) (subVecι' ξ ts)) ⟩
     TmPos s Γ2 (tySubVec' (ιₜ' ξ) ts) .snd
-      ≡⟨ subVecTmPos (ιₜ' ξ) ts ⟩
+      ≡⟨ subVecTmPos s (ιₜ' ξ) ts ⟩
     subTyp' (ιₜ' ξ) (TmPos s Γ1 ts .snd)
       ≡⟨ subTypι' ξ  (TmPos s Γ1 ts .snd) ⟩
     renTyp' ξ (TmPos s Γ1 ts .snd) ∎
@@ -83,7 +83,7 @@ record ThirdOrderSignature : Set₁ where
     TmPos s Γ2 (tyRenVec' ξ ts) .fst
       ≡⟨ cong (λ x → TmPos s Γ2 x .fst) (sym (subVecι' ξ ts)) ⟩
     TmPos s Γ2 (tySubVec' (ιₜ' ξ) ts) .fst
-      ≡⟨ subVecKndCtxTmPos (ιₜ' ξ) ts ⟩
+      ≡⟨ subVecKndCtxTmPos s (ιₜ' ξ) ts ⟩
     subBinders' (ιₜ' ξ) (TmPos s Γ1 ts .fst)
       ≡⟨ subBindersι' ξ (TmPos s Γ1 ts .fst) ⟩
     renBinders' ξ (TmPos s Γ1 ts .fst) ∎
