@@ -222,11 +222,11 @@ subTy : ∀{Γ1 Γ2 Δ t} (σ : TySub Γ1 Γ2) → Tm Γ1 Δ t → Tm Γ2 (subCt
 subVecTy : ∀{Γ1 Γ2 Δ Θ} (σ : TySub Γ1 Γ2) → TmVec Γ1 Δ Θ → TmVec Γ2 (subCtx σ Δ) (subBinders σ Θ)
 
 subTy σ (var x) = var (subVarTy σ x)
-subTy {Γ1} {Γ2} {Δ} {t} σ (constr c ts es) =
-  subst (Tm Γ2 (subCtx σ Δ)) (⅀ .subVecTmPos σ ts)
-    (constr c (tySubVec σ ts)
+subTy {Γ1} {Γ2} {Δ} {t} σ (constr s ts es) =
+  subst (Tm Γ2 (subCtx σ Δ)) (⅀ .subVecTmPos s σ ts)
+    (constr s (tySubVec σ ts)
     (subst (TmVec Γ2 (subCtx σ Δ))
-      (sym (⅀ .subVecKndCtxTmPos σ ts)) (subVecTy σ es)))
+      (sym (⅀ .subVecKndCtxTmPos s σ ts)) (subVecTy σ es)))
 
 subVecTy σ [] = [] 
 subVecTy {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
