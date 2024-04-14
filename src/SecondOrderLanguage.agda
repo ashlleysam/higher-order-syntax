@@ -50,7 +50,7 @@ data TmVec Γ where
 --------------
 
 data Ren : Ctx → Ctx → Set where
-  ε : Ren [] []
+  ε : ∀{Γ} → Ren [] Γ
   Keep : ∀{Γ1 Γ2 t} → Ren Γ1 Γ2 → Ren (t ∷ Γ1) (t ∷ Γ2)
   Drop : ∀{Γ1 Γ2 t} → Ren Γ1 Γ2 → Ren Γ1 (t ∷ Γ2)
 
@@ -73,12 +73,14 @@ Drop* ξ (t ∷ Δ) = Drop (Drop* ξ Δ)
 infixr 9 _•_ 
 _•_ : ∀{Γ1 Γ2 Γ3} → Ren Γ2 Γ3 → Ren Γ1 Γ2 → Ren Γ1 Γ3
 ε • ε = ε
+Keep ξ1 • ε = ε
 Keep ξ1 • Keep ξ2 = Keep (ξ1 • ξ2)
 Keep ξ1 • Drop ξ2 = Drop (ξ1 • ξ2)
 Drop ξ1 • ξ2 = Drop (ξ1 • ξ2)
 
 Id• : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → IdRen • ξ ≡ ξ
-Id• ε = refl
+Id• {Γ2 = []} ε = refl
+Id• {Γ2 = x ∷ Γ2} ε = refl
 Id• (Keep ξ) = cong Keep (Id• ξ)
 Id• (Drop ξ) = cong Drop (Id• ξ)
 
@@ -267,9 +269,11 @@ Keep*ι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ → KeepSub* (ι ξ) Δ ≡
 Keep*ι ξ [] = refl
 Keep*ι ξ (t ∷ Δ) = cong KeepSub (Keep*ι ξ Δ)
 
+
 •◦ι : ∀{Γ1 Γ2 Γ3} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
     ξ1 •◦ ι ξ2 ≡ ι (ξ1 • ξ2)
 •◦ι ε ε = refl
+•◦ι (Keep ξ1) ε = refl
 •◦ι (Keep ξ1) (Keep ξ2) = cong (_▸ var V0) (
   Keep ξ1 •◦ (Drop IdRen •◦ ι ξ2)
     ≡⟨ sym (••◦ (Keep ξ1) (Drop IdRen) (ι ξ2)) ⟩
@@ -396,33 +400,34 @@ subVecId es = subVecι IdRen es ∙ renVecId es
 
 infixr 9 _◦•_ 
 _◦•_ : ∀{Γ1 Γ2 Γ3} → Sub Γ2 Γ3 → Ren Γ1 Γ2 → Sub Γ1 Γ3
-ε ◦• ε = ε
+σ ◦• ε = ε
 (σ ▸ e) ◦• Keep ξ = (σ ◦• ξ) ▸ e
 (σ ▸ e) ◦• Drop ξ = σ ◦• ξ
 
 ◦•• : ∀{Γ1 Γ2 Γ3 Γ4} (σ : Sub Γ3 Γ4) (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
       σ ◦• (ξ1 • ξ2) ≡ (σ ◦• ξ1) ◦• ξ2
-◦•• ε ε ε = refl
+◦•• σ ε ε = refl
+◦•• (σ ▸ e) (Keep ξ1) ε = refl
 ◦•• (σ ▸ e) (Keep ξ1) (Keep ξ2) = cong (_▸ e) (◦•• σ ξ1 ξ2)
 ◦•• (σ ▸ e) (Keep ξ1) (Drop ξ2) = ◦•• σ ξ1 ξ2
 ◦•• (σ ▸ e) (Drop ξ1) ξ2 = ◦•• σ ξ1 ξ2
 
 •◦◦• : ∀{Γ1 Γ2 Γ3 Γ4} (ξ1 : Ren Γ3 Γ4) (σ : Sub Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
       ξ1 •◦ (σ ◦• ξ2) ≡ (ξ1 •◦ σ) ◦• ξ2
-•◦◦• ξ1 ε ε = refl
+•◦◦• ξ1 σ ε = refl
 •◦◦• ξ1 (σ ▸ e) (Keep ξ2) = cong (_▸ ren ξ1 e) (•◦◦• ξ1 σ ξ2)
 •◦◦• ξ1 (σ ▸ e) (Drop ξ2) = •◦◦• ξ1 σ ξ2
 
 Drop◦• : ∀{Γ1 Γ2 Γ3 t} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
         DropSub {t = t} (σ ◦• ξ) ≡ DropSub σ ◦• ξ
-Drop◦• ε ε = refl
+Drop◦• σ ε = refl
 Drop◦• (σ ▸ e) (Keep ξ) =
   cong (_▸ ren (Drop IdRen) e) (•◦◦• (Drop IdRen) σ ξ)
 Drop◦• (σ ▸ e) (Drop ξ) = •◦◦• (Drop IdRen) σ ξ
 
 Keep◦• : ∀{Γ1 Γ2 Γ3 t} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
         KeepSub {t = t} (σ ◦• ξ) ≡ KeepSub σ ◦• Keep ξ
-Keep◦• ε ε = refl
+Keep◦• σ ε = refl
 Keep◦• (σ ▸ e) (Keep ξ) =
   cong (_▸ var V0)
   (cong (_▸ ren (Drop IdRen) e)
@@ -499,7 +504,7 @@ _◦_ : ∀{Γ1 Γ2 Γ3} → Sub Γ2 Γ3 → Sub Γ1 Γ2 → Sub Γ1 Γ3
 
 ◦ι : ∀{Γ1 Γ2 Γ3} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
       σ ◦ ι ξ ≡ σ ◦• ξ
-◦ι ε ε = refl
+◦ι σ ε = refl
 ◦ι (σ ▸ e) (Keep ξ) = cong (_▸ e) (
   (σ ▸ e) ◦ Drop IdRen •◦ ι ξ
     ≡⟨ ◦•◦ (σ ▸ e) (Drop IdRen) (ι ξ) ⟩
