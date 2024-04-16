@@ -36,9 +36,9 @@ data TmVec (Γ : KndCtx) (Δ : Ctx Γ) : List (Σ[ Γ' ∈ KndCtx ] (Ctx (Γ' ++
 data Tm Γ Δ where
   var : ∀{t} → Var Γ Δ t → Tm Γ Δ t
   constr : (c : ⅀ .Shape) →
-            (ts : TyVec Γ (⅀ .TmTyPos c)) →
-            (es : TmVec Γ Δ (⅀ .TmPos c Γ ts .fst)) →
-            Tm Γ Δ (⅀ .TmPos c Γ ts .snd)
+           (ts : TyVec Γ (⅀ .TmTyPos c)) →
+           (es : TmVec Γ Δ (⅀ .TmPos c Γ ts .fst)) →
+           Tm Γ Δ (⅀ .TmPos c Γ ts .snd)
 
 -- Well-typed lists of terms
 infixr 5 _∷_

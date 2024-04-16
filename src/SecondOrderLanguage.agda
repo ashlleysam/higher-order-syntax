@@ -2,6 +2,9 @@
 
 open import Level renaming (_⊔_ to ℓ-max; suc to ℓ-suc; zero to ℓ-zero)
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
+open import Data.Empty
+open import Data.Nat
+open import Data.Nat.Properties
 open import Data.List
 open import Data.Unit
 open import Relation.Nullary
@@ -75,15 +78,25 @@ substVS : ∀{Γ1 Γ2 t t'} (p : Γ1 ≡ Γ2) (x : Var Γ1 t) →
 substVS refl x = refl
 
 -- How substitution acts on terms
-substVar : ∀{Γ1 Γ2 t} (p : Γ1 ≡ Γ2) (x : Var Γ1 t) →
-          var (subst (flip Var t) p x) ≡
-           subst (flip Tm t) p (var x)
-substVar refl x = refl
+substCtx-Var : ∀{Γ1 Γ2 t} (p : Γ1 ≡ Γ2) (x : Var Γ1 t) →
+               var (subst (flip Var t) p x) ≡
+               subst (flip Tm t) p (var x)
+substCtx-Var refl x = refl
 
-substConstr : ∀{Γ1 Γ2 s} (p : Γ1 ≡ Γ2) (ts : TmVec Γ1 (⅀ .TyPos s .fst)) →
-              constr s (subst (flip TmVec (⅀ .TyPos s .fst)) p ts) ≡
-              subst (flip Tm (⅀ .TyPos s .snd)) p (constr s ts)
-substConstr refl ts = refl
+substTy-Var : ∀{Γ t1 t2} (p : t1 ≡ t2) (x : Var Γ t1) →
+              var (subst (Var Γ) p x) ≡
+              subst (Tm Γ) p (var x)
+substTy-Var refl x = refl
+
+substCtx-Constr : ∀{Γ1 Γ2 s} (p : Γ1 ≡ Γ2) (ts : TmVec Γ1 (⅀ .TyPos s .fst)) →
+                  constr s (subst (flip TmVec (⅀ .TyPos s .fst)) p ts) ≡
+                  subst (flip Tm (⅀ .TyPos s .snd)) p (constr s ts)
+substCtx-Constr refl ts = refl
+
+substTy-Constr : ∀{Γ s t} (p : ⅀ .TyPos s .snd ≡ t) (ts : TmVec Γ (⅀ .TyPos s .fst)) →
+                  subst (λ x → TmVec Γ (⅀ .TyPos s .fst) → Tm Γ x) p (constr s) ts ≡
+                  subst (Tm Γ) p (constr s ts)
+substTy-Constr refl ts = refl
 
 -- How substitution acts on term vectors
 substNil : ∀{Γ1 Γ2} (p : Γ1 ≡ Γ2) →
@@ -103,6 +116,19 @@ data Ren : Ctx → Ctx → Set where
   ε : ∀{Γ} → Ren [] Γ
   Keep : ∀{Γ1 Γ2 t} → Ren Γ1 Γ2 → Ren (t ∷ Γ1) (t ∷ Γ2)
   Drop : ∀{Γ1 Γ2 t} → Ren Γ1 Γ2 → Ren Γ1 (t ∷ Γ2)
+
+subCtx-Keep : ∀{t Γ1 Γ1' Γ2} (ξ : Ren Γ1 Γ2)
+              (p : t ∷ Γ1 ≡ t ∷ Γ1')
+              (q : Γ1 ≡ Γ1') →
+              subst (flip Ren (t ∷ Γ2)) p (Keep ξ) ≡
+              Keep (subst (flip Ren Γ2) q ξ)
+subCtx-Keep ξ refl refl = refl
+
+subCtx-Drop : ∀{t Γ1 Γ1' Γ2} (ξ : Ren Γ1 Γ2)
+              (p : Γ1 ≡ Γ1') →
+              subst (flip Ren (t ∷ Γ2)) p (Drop ξ) ≡
+              Drop (subst (flip Ren Γ2) p ξ)
+subCtx-Drop ξ refl = refl
 
 IdRen : ∀{Γ} → Ren Γ Γ
 IdRen {[]} = ε
@@ -212,6 +238,16 @@ renVec• {Σ = (Δ , t) ∷ Σ} ξ1 ξ2 (e ∷ es) =
       ≡⟨ ren• (Keep* ξ1 Δ) (Keep* ξ2 Δ) e ⟩
     ren (Keep* ξ1 Δ) (ren (Keep* ξ2 Δ) e) ∎)
     (renVec• ξ1 ξ2 es)
+
+substTy-ren : ∀{Γ1 Γ2 t1 t2} (p : t1 ≡ t2) (ξ : Ren Γ1 Γ2) (x : Tm Γ1 t1) →
+              ren ξ (subst (Tm Γ1) p x) ≡
+              subst (Tm Γ2) p (ren ξ x)
+substTy-ren refl ξ x = refl
+
+substCtx-ren : ∀{Γ1 Γ1' Γ2 t} (p : Γ1 ≡ Γ1') (ξ : Ren Γ1 Γ2) (x : Tm Γ1 t) →
+              ren (subst (flip Ren Γ2) p ξ) (subst (flip Tm t) p x) ≡
+              ren ξ x
+substCtx-ren refl ξ x = refl
 
 ------------------
 -- SUBSTITUTION --

@@ -33,8 +33,11 @@ open import SecondOrderLanguage ⅀ public
           Sub to TySub; _•◦_ to _•◦ₜ_; DropSub to TyDropSub; DropSub* to TyDropSub*;
           KeepSub to TyKeepSub; KeepSub* to TyKeepSub*; ι to ιₜ; IdSub to TyIdSub; subVec to tySubVec;
           subVar to tySubVar; sub to tySub; Ctx to KndCtx; MCtx to MKndCtx; V0 to TV0; VS to TVS;
-          sub◦ to tySub◦; substV0 to substTyV0; substVS to substTyVS; substVar to substTyVar;
-          substConstr to substTyConstr; substNil to substTyNil; substCons to substTyCons)
+          sub◦ to tySub◦; substV0 to substTyV0; substVS to substTyVS; substCtx-Var to substCtx-TyVar;
+          substTy-Var to substKnd-TyVar; substCtx-Constr to substCtx-TyConstr;
+          substTy-Constr to substKnd-TyConstr; substNil to substTyNil; substCons to substTyCons;
+          substTy-ren to substKnd-tyRen; substCtx-ren to substCtx-tyRen; subCtx-Keep to subCtx-TyKeep;
+          subCtx-Drop to subCtx-TyDrop)
 
 -- Types of any kind
 Typ : KndCtx → Set

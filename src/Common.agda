@@ -32,6 +32,16 @@ cong₃ : ∀{a b c d} {A : Set a} {B : Set b} {C : Set c} {D : Set d}
         f x1 y1 z1 ≡ f x2 y2 z2
 cong₃ f refl refl refl = refl
 
+subst₂-reflₗ : ∀{a b ℓ} {A : Set a} {x : A} {B : Set b} {y1 y2 : B}
+               (P : A → B → Set ℓ) (p : y1 ≡ y2) (v : P x y1) →
+               subst₂ P refl p v ≡ subst (P x) p v
+subst₂-reflₗ P refl v = refl
+
+subst₂-reflᵣ : ∀{a b ℓ} {A : Set a} {x1 x2 : A} {B : Set b} {y : B}
+               (P : A → B → Set ℓ) (p : x1 ≡ x2) (v : P x1 y) →
+               subst₂ P p refl v ≡ subst (flip P y) p v
+subst₂-reflᵣ P refl v = refl
+
 -- Custom equational reasoning for functions
 module FunExt {a b} {A : Set a} {B : Set b} where
   ≗-refl : {f : A → B} → f ≗ f
