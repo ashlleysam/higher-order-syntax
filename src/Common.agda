@@ -21,6 +21,19 @@ UIP : ∀{a} {A : Set a} {x y : A}
       (p q : x ≡ y) → p ≡ q
 UIP refl refl = refl
 
+J : ∀{a ℓ} {A : Set a} {x : A} (P : (y : A) → x ≡ y → Set ℓ) →
+    (d : P x refl) →
+    (y : A) (p : x ≡ y) → P y p
+J P d x refl = d
+
+transport : ∀{a} {A B : Set a} → A ≡ B → A → B
+transport refl x = x
+
+transport-cong : ∀{a b} {A : Set a} {x y : A}
+                 (B : A → Set b) (p : x ≡ y) →
+                 transport (cong B p) ≗ subst B p
+transport-cong B refl Bx = refl
+
 cong-sym : ∀{a b} {A : Set a} {B : Set b} {x y : A}
            (f : A → B) (p : x ≡ y) →
            cong f (sym p) ≡ sym (cong f p)
