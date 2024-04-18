@@ -70,6 +70,12 @@ unCons-inj refl = refl , refl , refl
 URen : Set
 URen = ℕ → ℕ
 
+UIdRen : URen
+UIdRen x = x
+
+URenε : URen
+URenε x = zero
+
 UKeep : URen → URen
 UKeep ξ zero = zero
 UKeep ξ (suc n) = suc (ξ n)
@@ -129,6 +135,12 @@ renVecUntyExt p ((e , k) ∷ es) = cong₃ untyCons
 USub : Set
 USub = ℕ → UTm
 
+UIdSub : USub
+UIdSub x = var x
+
+USubε : USub
+USubε x = var zero
+
 _▹_ : USub → UTm → USub
 (σ ▹ e) zero = e
 (σ ▹ e) (suc n) = σ n
@@ -158,6 +170,9 @@ subUnty σ (constr s es) = constr s (subVecUnty σ es)
 
 subVecUnty σ [] = []
 subVecUnty σ ((e , k) ∷ es) = (subUnty (UKeepSub* σ k) e , k) ∷ subVecUnty σ es
+
+_◦U_ : USub → USub → USub
+σ1 ◦U σ2 = subUnty σ1 ∘ σ2
 
 -- The various operations respect extensional equality
 ▹Ext : ∀{σ1 σ2} → σ1 ≗ σ2 → ∀ e → σ1 ▹ e ≗ σ2 ▹ e
@@ -194,10 +209,14 @@ unty (constr s es) = constr s (untyVec es)
 untyVec [] = []
 untyVec (_∷_ {Δ = Δ} e es) = (unty e , length Δ) ∷ untyVec es
 
-untyRen : ∀{Γ1 Γ2} → Ren Γ1 Γ2 → ℕ → ℕ
+untyRen : ∀{Γ1 Γ2} → Ren Γ1 Γ2 → URen
 untyRen ε = id
 untyRen (Keep ξ) = UKeep (untyRen ξ)
 untyRen (Drop ξ) = UDrop (untyRen ξ)
+
+untySub : ∀{Γ1 Γ2} → Sub Γ1 Γ2 → USub
+untySub ε = var
+untySub (σ ▸ e) = untySub σ ▹ unty e
 
 -- Type erasure is injective
 untyVar-inj≡ : ∀{Γ1 Γ2 t1 t2} {x : Var Γ1 t1} {y : Var Γ2 t2}
@@ -233,14 +252,21 @@ untyRen-inj≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {ξ1 : Ren Γ1 Γ2} {ξ2 : Ren Γ1' Γ2'
               untyRen ξ1 ≗ untyRen ξ2 →
               subst₂ Ren p q ξ1 ≡ ξ2
 untyRen-inj≡ {ξ1 = ε} {ε} refl refl r = refl
-untyRen-inj≡ {ξ1 = ε} {Drop ξ2} refl refl r = ⊥-elim (0≢1+n (r zero))
 untyRen-inj≡ {ξ1 = Keep ξ1} {Keep ξ2} refl refl r =
   cong Keep (untyRen-inj≡ refl refl (suc-injective ∘ r ∘ suc))
 untyRen-inj≡ {ξ1 = Keep ξ1} {Drop ξ2} refl refl r = ⊥-elim (0≢1+n (r zero))
-untyRen-inj≡ {ξ1 = Drop ξ1} {ε} refl refl r = ⊥-elim (1+n≢0 (r zero))
 untyRen-inj≡ {ξ1 = Drop ξ1} {Keep ξ2} refl refl r = ⊥-elim (1+n≢0 (r zero))
 untyRen-inj≡ {ξ1 = Drop ξ1} {Drop ξ2} refl refl r =
   cong Drop (untyRen-inj≡ refl refl (suc-injective ∘ r))
+
+untySub-inj≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {σ1 : Sub Γ1 Γ2} {σ2 : Sub Γ1' Γ2'} →
+              (p : Γ1 ≡ Γ1') (q : Γ2 ≡ Γ2') →
+              untySub σ1 ≗ untySub σ2 →
+              subst₂ Sub p q σ1 ≡ σ2
+untySub-inj≡ {σ1 = ε} {ε} refl refl r = refl
+untySub-inj≡ {σ1 = σ1 ▸ e1} {σ2 ▸ e2} refl refl r = cong₂ _▸_
+  (untySub-inj≡ refl refl (r ∘ suc))
+  (unty-inj≡ refl refl (r zero))
 
 untyVar-inj : ∀{Γ t} {x y : Var Γ t} → untyVar x ≡ untyVar y → x ≡ y
 untyVar-inj = untyVar-inj≡ refl refl
@@ -254,7 +280,10 @@ untyVec-inj = untyVec-inj≡ refl refl
 untyRen-inj : ∀{Γ1 Γ2} {ξ1 ξ2 : Ren Γ1 Γ2} → untyRen ξ1 ≗ untyRen ξ2 → ξ1 ≡ ξ2
 untyRen-inj = untyRen-inj≡ refl refl
 
--- Type erasure commutes with the extended Keep and Drop operations
+untySub-inj : ∀{Γ1 Γ2} {σ1 σ2 : Sub Γ1 Γ2} → untySub σ1 ≗ untySub σ2 → σ1 ≡ σ2
+untySub-inj = untySub-inj≡ refl refl
+
+-- Type erasure commutes with the Keep and Drop operations
 untyRen-Keep* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ →
                 untyRen (Keep* ξ Δ) ≗ UKeep* (untyRen ξ) (length Δ)
 untyRen-Keep* ξ [] = ≗-refl
@@ -344,3 +373,4 @@ substTy-untyVec : ∀{Γ Σ1 Σ2}
                    (x : TmVec Γ Σ1) →
                   untyVec x ≡ untyVec (subst (TmVec Γ) p x)
 substTy-untyVec refl x = refl
+ 
