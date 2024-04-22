@@ -117,7 +117,7 @@ data Expr : (A : TyRep) → Set where
   _•U_ : Expr URen' → Expr URen' → Expr URen'
   EUKeep* : Expr URen' → Expr ℕ' → Expr URen'
   EUDrop* : Expr URen' → Expr ℕ' → Expr URen'
-  untyERen : ∀{Γ1 Γ2} → Expr (Ren' Γ1 Γ2) → Expr URen'
+  eraseERen : ∀{Γ1 Γ2} → Expr (Ren' Γ1 Γ2) → Expr URen'
 
   -- Raw substitutions
   EUSubε : Expr USub'
@@ -125,13 +125,13 @@ data Expr : (A : TyRep) → Set where
   EUSubId : Expr USub'
   _•◦U_ : Expr URen' → Expr USub' → Expr USub'
   _◦U'_ : Expr USub' → Expr USub' → Expr USub'
-  untyESub : ∀{Γ1 Γ2} → Expr (Sub' Γ1 Γ2) → Expr USub'
+  eraseESub : ∀{Γ1 Γ2} → Expr (Sub' Γ1 Γ2) → Expr USub'
 
   -- Raw variables/natural numbers
   Z : Expr ℕ'
   S : Expr ℕ' → Expr ℕ'
   renEUVar : Expr URen' → Expr ℕ' → Expr ℕ'
-  untyEVar : ∀{Γ t} → Expr (Var' Γ t) → Expr ℕ'
+  eraseEVar : ∀{Γ t} → Expr (Var' Γ t) → Expr ℕ'
 
   -- Raw terms
   varU : Expr ℕ' → Expr UTm'
@@ -139,7 +139,7 @@ data Expr : (A : TyRep) → Set where
   renEUTm : Expr URen' → Expr UTm' → Expr UTm'
   subEUTm : Expr USub' → Expr UTm' → Expr UTm'
   subEUVar : Expr USub' → Expr ℕ' → Expr UTm'
-  untyETm : ∀{Γ t} → Expr (Tm' Γ t) → Expr UTm'
+  eraseETm : ∀{Γ t} → Expr (Tm' Γ t) → Expr UTm'
 
   -- Raw term vectors
   []U : Expr UTmVec'
@@ -148,7 +148,7 @@ data Expr : (A : TyRep) → Set where
          Expr UTmVec'
   renEUTmVec : Expr URen' → Expr UTmVec' → Expr UTmVec'
   subEUTmVec : Expr USub' → Expr UTmVec' → Expr UTmVec'
-  untyETmVec : ∀{Γ Σ} → Expr (TmVec' Γ Σ) → Expr UTmVec'
+  eraseETmVec : ∀{Γ Σ} → Expr (TmVec' Γ Σ) → Expr UTmVec'
 
 ---------------------
 -- INTERPRETATIONS --
@@ -197,32 +197,32 @@ interp EURenId = id
 interp (ξ1 •U ξ2) = interp ξ1 ∘ interp ξ2
 interp (EUKeep* ξ k) = UKeep* (interp ξ) (interp k)
 interp (EUDrop* ξ k) = UDrop* (interp ξ) (interp k)
-interp (untyERen e) = untyRen (interp e)
+interp (eraseERen e) = eraseRen (interp e)
 
 interp EUSubε = var
 interp (σ ▸U e) = interp σ ▹ interp e
 interp EUSubId = var
 interp (ξ •◦U σ) = URenSub (interp ξ) (interp σ)
 interp (σ1 ◦U' σ2) = interp σ1 ◦U interp σ2
-interp (untyESub σ) = untySub (interp σ)
+interp (eraseESub σ) = eraseSub (interp σ)
 
 interp Z = zero
 interp (S n) = suc (interp n)
 interp (renEUVar ξ n) = interp ξ (interp n)
-interp (untyEVar n) = untyVar (interp n)
+interp (eraseEVar n) = eraseVar (interp n)
 
 interp (varU n) = var (interp n)
 interp (constrU s es) = constr s (interp es)
 interp (renEUTm ξ e) = renUnty (interp ξ) (interp e)
 interp (subEUTm σ e) = subUnty (interp σ) (interp e)
 interp (subEUVar σ x) = interp σ (interp x)
-interp (untyETm e) = unty (interp e)
+interp (eraseETm e) = erase (interp e)
 
 interp []U = []
 interp ((e , k) ∷U es) = (interp e , interp k) ∷ interp es
 interp (renEUTmVec ξ es) = renVecUnty (interp ξ) (interp es)
 interp (subEUTmVec σ es) = subVecUnty (interp σ) (interp es)
-interp (untyETmVec es) = untyVec (interp es)
+interp (eraseETmVec es) = eraseVec (interp es)
 
 -------------------------------
 -- EXPRESSION SIMPLIFICATION --
@@ -614,29 +614,29 @@ simpl (subETmVec σ es) with simpl σ | simpl es
 -- simpl (ξ1 •U ξ2) = {!   !}
 -- simpl (EUKeep* ξ Δ) = {!   !}
 -- simpl (EUDrop* ξ Δ) = {!   !}
--- simpl (untyERen ξ) = {!   !}
+-- simpl (eraseERen ξ) = {!   !}
 -- simpl (σ ▸U e) = {!   !}
 -- simpl (ξ •◦U σ) = {!   !}
 -- simpl (σ1 ◦U' σ2) = {!   !}
 -- simpl (ιE ξ) with simpl ξ
 -- ... | (ξ' , p) with simplι ξ'
 -- ... | (σ , q) = σ , q ∙ cong ι p
--- simpl (untyESub σ) = {!   !}
+-- simpl (eraseESub σ) = {!   !}
 -- simpl (S n) with simpl n
 -- ... | (n' , p) = S n' , cong suc p
 -- simpl (renEUVar ξ x) = {!   !}
--- simpl (untyEVar x) = {!   !}
+-- simpl (eraseEVar x) = {!   !}
 -- simpl (varU x) with simpl x
 -- ... | (x' , p) = varU x' , cong var p
 -- simpl (constrU s es) = {!   !}
 -- simpl (renEUTm ξ e) = {!   !}
 -- simpl (subEUTm σ e) = {!   !}
 -- simpl (subEUVar e e₁) = {!   !}
--- simpl (untyETm e) = {!   !}
+-- simpl (eraseETm e) = {!   !}
 -- simpl ((e , k) ∷U es) = {!   !}
 -- simpl (renEUTmVec ξ es) = {!   !}
 -- simpl (subEUTmVec σ es) = {!   !}
--- simpl (untyETmVec es) = {!   !}
+-- simpl (eraseETmVec es) = {!   !}
 simpl e = e , refl
  
 simplFun : ∀{A} → Expr A → Expr A

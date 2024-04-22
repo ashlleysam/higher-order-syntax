@@ -42,8 +42,8 @@ data UTmVec where
         (es : UTmVec) →
         UTmVec
 
-untyCons : UTm → ℕ → UTmVec → UTmVec
-untyCons e k es = (e , k) ∷ es
+eraseCons : UTm → ℕ → UTmVec → UTmVec
+eraseCons e k es = (e , k) ∷ es
 
 ----------------------
 -- BASIC PROPERTIES --
@@ -123,7 +123,7 @@ renUntyExt p (var x) = cong var (p x)
 renUntyExt p (constr s es) = cong (constr s) (renVecUntyExt p es)
 
 renVecUntyExt p [] = refl
-renVecUntyExt p ((e , k) ∷ es) = cong₃ untyCons
+renVecUntyExt p ((e , k) ∷ es) = cong₃ eraseCons
   (renUntyExt (UKeepExt* p k) e)
   refl
   (renVecUntyExt p es)
@@ -196,181 +196,181 @@ UKeepSubExt p = ▹Ext (UDropSubExt p) (var zero)
 ------------------
 
 -- Convert a typed to an untyped representation
-untyVar : ∀{Γ t} → Var Γ t → ℕ
-untyVar V0 = zero
-untyVar (VS x) = suc (untyVar x)
+eraseVar : ∀{Γ t} → Var Γ t → ℕ
+eraseVar V0 = zero
+eraseVar (VS x) = suc (eraseVar x)
 
-unty : ∀{Γ t} → Tm Γ t → UTm
-untyVec : ∀{Γ Σ} → TmVec Γ Σ → UTmVec
+erase : ∀{Γ t} → Tm Γ t → UTm
+eraseVec : ∀{Γ Σ} → TmVec Γ Σ → UTmVec
 
-unty (var x) = var (untyVar x)
-unty (constr s es) = constr s (untyVec es)
+erase (var x) = var (eraseVar x)
+erase (constr s es) = constr s (eraseVec es)
 
-untyVec [] = []
-untyVec (_∷_ {Δ = Δ} e es) = (unty e , length Δ) ∷ untyVec es
+eraseVec [] = []
+eraseVec (_∷_ {Δ = Δ} e es) = (erase e , length Δ) ∷ eraseVec es
 
-untyRen : ∀{Γ1 Γ2} → Ren Γ1 Γ2 → URen
-untyRen ε = id
-untyRen (Keep ξ) = UKeep (untyRen ξ)
-untyRen (Drop ξ) = UDrop (untyRen ξ)
+eraseRen : ∀{Γ1 Γ2} → Ren Γ1 Γ2 → URen
+eraseRen ε = id
+eraseRen (Keep ξ) = UKeep (eraseRen ξ)
+eraseRen (Drop ξ) = UDrop (eraseRen ξ)
 
-untySub : ∀{Γ1 Γ2} → Sub Γ1 Γ2 → USub
-untySub ε = var
-untySub (σ ▸ e) = untySub σ ▹ unty e
+eraseSub : ∀{Γ1 Γ2} → Sub Γ1 Γ2 → USub
+eraseSub ε = var
+eraseSub (σ ▸ e) = eraseSub σ ▹ erase e
 
 -- Type erasure is injective
-untyVar-inj≡ : ∀{Γ1 Γ2 t1 t2} {x : Var Γ1 t1} {y : Var Γ2 t2}
+eraseVar-inj≡ : ∀{Γ1 Γ2 t1 t2} {x : Var Γ1 t1} {y : Var Γ2 t2}
               (p : Γ1 ≡ Γ2) (q : t1 ≡ t2) →
-              untyVar x ≡ untyVar y →
+              eraseVar x ≡ eraseVar y →
               subst₂ Var p q x ≡ y
-untyVar-inj≡ {x = V0} {V0} refl refl refl = refl
-untyVar-inj≡ {x = VS x} {VS y} refl refl r =
-  cong VS (untyVar-inj≡ {x = x} {y} refl refl (suc-injective r))
+eraseVar-inj≡ {x = V0} {V0} refl refl refl = refl
+eraseVar-inj≡ {x = VS x} {VS y} refl refl r =
+  cong VS (eraseVar-inj≡ {x = x} {y} refl refl (suc-injective r))
 
-unty-inj≡ : ∀{Γ1 Γ2 t1 t2} {x : Tm Γ1 t1} {y : Tm Γ2 t2} →
+erase-inj≡ : ∀{Γ1 Γ2 t1 t2} {x : Tm Γ1 t1} {y : Tm Γ2 t2} →
            (p : Γ1 ≡ Γ2) (q : t1 ≡ t2) →
-           unty x ≡ unty y →
+           erase x ≡ erase y →
            subst₂ Tm p q x ≡ y
-untyVec-inj≡ : ∀{Γ1 Γ2 Σ1 Σ2} {x : TmVec Γ1 Σ1} {y : TmVec Γ2 Σ2} →
+eraseVec-inj≡ : ∀{Γ1 Γ2 Σ1 Σ2} {x : TmVec Γ1 Σ1} {y : TmVec Γ2 Σ2} →
               (p : Γ1 ≡ Γ2) (q : Σ1 ≡ Σ2) →
-              untyVec x ≡ untyVec y →
+              eraseVec x ≡ eraseVec y →
               subst₂ TmVec p q x ≡ y
 
-unty-inj≡ {x = var x} {var y} refl refl r = cong var (untyVar-inj≡ refl refl (unVar-inj r))
-unty-inj≡ {x = constr s1 es1} {constr s2 es2} refl q r with unConstr-inj r .fst
-unty-inj≡ {x = constr s1 es1} {constr .s1 es2} refl refl r | refl =
-  cong (constr s1) (untyVec-inj≡ refl refl (unConstr-inj r .snd))
+erase-inj≡ {x = var x} {var y} refl refl r = cong var (eraseVar-inj≡ refl refl (unVar-inj r))
+erase-inj≡ {x = constr s1 es1} {constr s2 es2} refl q r with unConstr-inj r .fst
+erase-inj≡ {x = constr s1 es1} {constr .s1 es2} refl refl r | refl =
+  cong (constr s1) (eraseVec-inj≡ refl refl (unConstr-inj r .snd))
 
-untyVec-inj≡ {x = []} {[]} refl refl refl = refl
-untyVec-inj≡ {x = e1 ∷ es1} {e2 ∷ es2} refl refl r =
+eraseVec-inj≡ {x = []} {[]} refl refl refl = refl
+eraseVec-inj≡ {x = e1 ∷ es1} {e2 ∷ es2} refl refl r =
   cong₂ _∷_
-  (unty-inj≡ refl refl (unCons-inj r .fst))
-  (untyVec-inj≡ refl refl (unCons-inj r .snd .snd))
+  (erase-inj≡ refl refl (unCons-inj r .fst))
+  (eraseVec-inj≡ refl refl (unCons-inj r .snd .snd))
 
-untyRen-inj≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {ξ1 : Ren Γ1 Γ2} {ξ2 : Ren Γ1' Γ2'} →
+eraseRen-inj≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {ξ1 : Ren Γ1 Γ2} {ξ2 : Ren Γ1' Γ2'} →
               (p : Γ1 ≡ Γ1') (q : Γ2 ≡ Γ2') →
-              untyRen ξ1 ≗ untyRen ξ2 →
+              eraseRen ξ1 ≗ eraseRen ξ2 →
               subst₂ Ren p q ξ1 ≡ ξ2
-untyRen-inj≡ {ξ1 = ε} {ε} refl refl r = refl
-untyRen-inj≡ {ξ1 = Keep ξ1} {Keep ξ2} refl refl r =
-  cong Keep (untyRen-inj≡ refl refl (suc-injective ∘ r ∘ suc))
-untyRen-inj≡ {ξ1 = Keep ξ1} {Drop ξ2} refl refl r = ⊥-elim (0≢1+n (r zero))
-untyRen-inj≡ {ξ1 = Drop ξ1} {Keep ξ2} refl refl r = ⊥-elim (1+n≢0 (r zero))
-untyRen-inj≡ {ξ1 = Drop ξ1} {Drop ξ2} refl refl r =
-  cong Drop (untyRen-inj≡ refl refl (suc-injective ∘ r))
+eraseRen-inj≡ {ξ1 = ε} {ε} refl refl r = refl
+eraseRen-inj≡ {ξ1 = Keep ξ1} {Keep ξ2} refl refl r =
+  cong Keep (eraseRen-inj≡ refl refl (suc-injective ∘ r ∘ suc))
+eraseRen-inj≡ {ξ1 = Keep ξ1} {Drop ξ2} refl refl r = ⊥-elim (0≢1+n (r zero))
+eraseRen-inj≡ {ξ1 = Drop ξ1} {Keep ξ2} refl refl r = ⊥-elim (1+n≢0 (r zero))
+eraseRen-inj≡ {ξ1 = Drop ξ1} {Drop ξ2} refl refl r =
+  cong Drop (eraseRen-inj≡ refl refl (suc-injective ∘ r))
 
-untySub-inj≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {σ1 : Sub Γ1 Γ2} {σ2 : Sub Γ1' Γ2'} →
+eraseSub-inj≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {σ1 : Sub Γ1 Γ2} {σ2 : Sub Γ1' Γ2'} →
               (p : Γ1 ≡ Γ1') (q : Γ2 ≡ Γ2') →
-              untySub σ1 ≗ untySub σ2 →
+              eraseSub σ1 ≗ eraseSub σ2 →
               subst₂ Sub p q σ1 ≡ σ2
-untySub-inj≡ {σ1 = ε} {ε} refl refl r = refl
-untySub-inj≡ {σ1 = σ1 ▸ e1} {σ2 ▸ e2} refl refl r = cong₂ _▸_
-  (untySub-inj≡ refl refl (r ∘ suc))
-  (unty-inj≡ refl refl (r zero))
+eraseSub-inj≡ {σ1 = ε} {ε} refl refl r = refl
+eraseSub-inj≡ {σ1 = σ1 ▸ e1} {σ2 ▸ e2} refl refl r = cong₂ _▸_
+  (eraseSub-inj≡ refl refl (r ∘ suc))
+  (erase-inj≡ refl refl (r zero))
 
-untyVar-inj : ∀{Γ t} {x y : Var Γ t} → untyVar x ≡ untyVar y → x ≡ y
-untyVar-inj = untyVar-inj≡ refl refl
+eraseVar-inj : ∀{Γ t} {x y : Var Γ t} → eraseVar x ≡ eraseVar y → x ≡ y
+eraseVar-inj = eraseVar-inj≡ refl refl
 
-unty-inj : ∀{Γ t} {x y : Tm Γ t} → unty x ≡ unty y → x ≡ y
-unty-inj = unty-inj≡ refl refl
+erase-inj : ∀{Γ t} {x y : Tm Γ t} → erase x ≡ erase y → x ≡ y
+erase-inj = erase-inj≡ refl refl
 
-untyVec-inj : ∀{Γ Σ} {x y : TmVec Γ Σ} → untyVec x ≡ untyVec y → x ≡ y
-untyVec-inj = untyVec-inj≡ refl refl
+eraseVec-inj : ∀{Γ Σ} {x y : TmVec Γ Σ} → eraseVec x ≡ eraseVec y → x ≡ y
+eraseVec-inj = eraseVec-inj≡ refl refl
 
-untyRen-inj : ∀{Γ1 Γ2} {ξ1 ξ2 : Ren Γ1 Γ2} → untyRen ξ1 ≗ untyRen ξ2 → ξ1 ≡ ξ2
-untyRen-inj = untyRen-inj≡ refl refl
+eraseRen-inj : ∀{Γ1 Γ2} {ξ1 ξ2 : Ren Γ1 Γ2} → eraseRen ξ1 ≗ eraseRen ξ2 → ξ1 ≡ ξ2
+eraseRen-inj = eraseRen-inj≡ refl refl
 
-untySub-inj : ∀{Γ1 Γ2} {σ1 σ2 : Sub Γ1 Γ2} → untySub σ1 ≗ untySub σ2 → σ1 ≡ σ2
-untySub-inj = untySub-inj≡ refl refl
+eraseSub-inj : ∀{Γ1 Γ2} {σ1 σ2 : Sub Γ1 Γ2} → eraseSub σ1 ≗ eraseSub σ2 → σ1 ≡ σ2
+eraseSub-inj = eraseSub-inj≡ refl refl
 
 -- Type erasure commutes with the Keep and Drop operations
-untyRen-Keep* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ →
-                untyRen (Keep* ξ Δ) ≗ UKeep* (untyRen ξ) (length Δ)
-untyRen-Keep* ξ [] = ≗-refl
-untyRen-Keep* ξ (t ∷ Δ) = UKeepExt (untyRen-Keep* ξ Δ)
+eraseRen-Keep* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ →
+                eraseRen (Keep* ξ Δ) ≗ UKeep* (eraseRen ξ) (length Δ)
+eraseRen-Keep* ξ [] = ≗-refl
+eraseRen-Keep* ξ (t ∷ Δ) = UKeepExt (eraseRen-Keep* ξ Δ)
 
-untyRen-Drop* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ →
-                untyRen (Drop* ξ Δ) ≗ UDrop* (untyRen ξ) (length Δ)
-untyRen-Drop* ξ [] = ≗-refl
-untyRen-Drop* ξ (t ∷ Δ) = UDropExt (untyRen-Drop* ξ Δ)
+eraseRen-Drop* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ →
+                eraseRen (Drop* ξ Δ) ≗ UDrop* (eraseRen ξ) (length Δ)
+eraseRen-Drop* ξ [] = ≗-refl
+eraseRen-Drop* ξ (t ∷ Δ) = UDropExt (eraseRen-Drop* ξ Δ)
 
 -- Type erasure distributes over renaming
-untyVar-distr-ren : ∀{Γ1 Γ2 t} (ξ : Ren Γ1 Γ2) (x : Var Γ1 t) →
-                    untyVar (renVar ξ x) ≡ untyRen ξ (untyVar x)
-untyVar-distr-ren (Keep ξ) V0 = refl
-untyVar-distr-ren (Keep ξ) (VS x) = cong suc (untyVar-distr-ren ξ x)
-untyVar-distr-ren (Drop ξ) x = cong suc (untyVar-distr-ren ξ x)
+eraseVar-distr-ren : ∀{Γ1 Γ2 t} (ξ : Ren Γ1 Γ2) (x : Var Γ1 t) →
+                    eraseVar (renVar ξ x) ≡ eraseRen ξ (eraseVar x)
+eraseVar-distr-ren (Keep ξ) V0 = refl
+eraseVar-distr-ren (Keep ξ) (VS x) = cong suc (eraseVar-distr-ren ξ x)
+eraseVar-distr-ren (Drop ξ) x = cong suc (eraseVar-distr-ren ξ x)
 
-unty-distr-ren : ∀{Γ1 Γ2 t} (ξ : Ren Γ1 Γ2) (e : Tm Γ1 t) →
-                 unty (ren ξ e) ≡ renUnty (untyRen ξ) (unty e)
-untyVec-distr-ren : ∀{Γ1 Γ2 Σ} (ξ : Ren Γ1 Γ2) (es : TmVec Γ1 Σ) →
-                    untyVec (renVec ξ es) ≡ renVecUnty (untyRen ξ) (untyVec es)
+erase-distr-ren : ∀{Γ1 Γ2 t} (ξ : Ren Γ1 Γ2) (e : Tm Γ1 t) →
+                 erase (ren ξ e) ≡ renUnty (eraseRen ξ) (erase e)
+eraseVec-distr-ren : ∀{Γ1 Γ2 Σ} (ξ : Ren Γ1 Γ2) (es : TmVec Γ1 Σ) →
+                    eraseVec (renVec ξ es) ≡ renVecUnty (eraseRen ξ) (eraseVec es)
 
-unty-distr-ren ξ (var x) = cong var (untyVar-distr-ren ξ x)
-unty-distr-ren ξ (constr s es) = cong (constr s) (untyVec-distr-ren ξ es)
+erase-distr-ren ξ (var x) = cong var (eraseVar-distr-ren ξ x)
+erase-distr-ren ξ (constr s es) = cong (constr s) (eraseVec-distr-ren ξ es)
 
-untyVec-distr-ren ξ [] = refl
-untyVec-distr-ren ξ (_∷_ {Δ = Δ} {Σ = Σ} e es) = cong₃ untyCons
-  (unty (ren (Keep* ξ Δ) e)
-    ≡⟨ unty-distr-ren (Keep* ξ Δ) e ⟩
-  renUnty (untyRen (Keep* ξ Δ)) (unty e)
-    ≡⟨ renUntyExt (untyRen-Keep* ξ Δ) (unty e) ⟩
-  renUnty (UKeep* (untyRen ξ) (length Δ)) (unty e) ∎)
+eraseVec-distr-ren ξ [] = refl
+eraseVec-distr-ren ξ (_∷_ {Δ = Δ} {Σ = Σ} e es) = cong₃ eraseCons
+  (erase (ren (Keep* ξ Δ) e)
+    ≡⟨ erase-distr-ren (Keep* ξ Δ) e ⟩
+  renUnty (eraseRen (Keep* ξ Δ)) (erase e)
+    ≡⟨ renUntyExt (eraseRen-Keep* ξ Δ) (erase e) ⟩
+  renUnty (UKeep* (eraseRen ξ) (length Δ)) (erase e) ∎)
   refl
-  (untyVec-distr-ren ξ es)
+  (eraseVec-distr-ren ξ es)
 
 -- Type erasure is invariant under propositional equality substitution
-subst₂-untyVar : ∀{Γ1 Γ2 t1 t2}
+subst₂-eraseVar : ∀{Γ1 Γ2 t1 t2}
                (p : Γ1 ≡ Γ2) (q : t1 ≡ t2)
                (x : Var Γ1 t1) →
-               untyVar x ≡ untyVar (subst₂ Var p q x)
-subst₂-untyVar refl refl x = refl
+               eraseVar x ≡ eraseVar (subst₂ Var p q x)
+subst₂-eraseVar refl refl x = refl
 
-substCtx-untyVar : ∀{Γ1 Γ2 t}
+substCtx-eraseVar : ∀{Γ1 Γ2 t}
                    (p : Γ1 ≡ Γ2)
                    (x : Var Γ1 t) →
-                  untyVar x ≡ untyVar (subst (flip Var t) p x)
-substCtx-untyVar refl x = refl
+                  eraseVar x ≡ eraseVar (subst (flip Var t) p x)
+substCtx-eraseVar refl x = refl
 
-substTy-untyVar : ∀{Γ t1 t2}
+substTy-eraseVar : ∀{Γ t1 t2}
                    (p : t1 ≡ t2)
                    (x : Var Γ t1) →
-                  untyVar x ≡ untyVar (subst (Var Γ) p x)
-substTy-untyVar refl x = refl
+                  eraseVar x ≡ eraseVar (subst (Var Γ) p x)
+substTy-eraseVar refl x = refl
 
-subst₂-unty : ∀{Γ1 Γ2 t1 t2}
+subst₂-erase : ∀{Γ1 Γ2 t1 t2}
               (p : Γ1 ≡ Γ2) (q : t1 ≡ t2)
               (x : Tm Γ1 t1) →
-              unty x ≡ unty (subst₂ Tm p q x)
-subst₂-unty refl refl x = refl
+              erase x ≡ erase (subst₂ Tm p q x)
+subst₂-erase refl refl x = refl
 
-substCtx-unty : ∀{Γ1 Γ2 t}
+substCtx-erase : ∀{Γ1 Γ2 t}
                 (p : Γ1 ≡ Γ2)
                 (x : Tm Γ1 t) →
-                unty x ≡ unty (subst (flip Tm t) p x)
-substCtx-unty refl x = refl
+                erase x ≡ erase (subst (flip Tm t) p x)
+substCtx-erase refl x = refl
 
-substTy-unty : ∀{Γ t1 t2}
+substTy-erase : ∀{Γ t1 t2}
                    (p : t1 ≡ t2)
                    (x : Tm Γ t1) →
-                  unty x ≡ unty (subst (Tm Γ) p x)
-substTy-unty refl x = refl
+                  erase x ≡ erase (subst (Tm Γ) p x)
+substTy-erase refl x = refl
 
-subst₂-untyVec : ∀{Γ1 Γ2 Σ1 Σ2}
+subst₂-eraseVec : ∀{Γ1 Γ2 Σ1 Σ2}
                 (p : Γ1 ≡ Γ2) (q : Σ1 ≡ Σ2)
                 (x : TmVec Γ1 Σ1) →
-                untyVec x ≡ untyVec (subst₂ TmVec p q x)
-subst₂-untyVec refl refl x = refl
+                eraseVec x ≡ eraseVec (subst₂ TmVec p q x)
+subst₂-eraseVec refl refl x = refl
 
-substCtx-untyVec : ∀{Γ1 Γ2 Σ}
+substCtx-eraseVec : ∀{Γ1 Γ2 Σ}
                    (p : Γ1 ≡ Γ2)
                    (x : TmVec Γ1 Σ) →
-                  untyVec x ≡ untyVec (subst (flip TmVec Σ) p x)
-substCtx-untyVec refl x = refl
+                  eraseVec x ≡ eraseVec (subst (flip TmVec Σ) p x)
+substCtx-eraseVec refl x = refl
 
-substTy-untyVec : ∀{Γ Σ1 Σ2}
+substTy-eraseVec : ∀{Γ Σ1 Σ2}
                    (p : Σ1 ≡ Σ2)
                    (x : TmVec Γ Σ1) →
-                  untyVec x ≡ untyVec (subst (TmVec Γ) p x)
-substTy-untyVec refl x = refl
+                  eraseVec x ≡ eraseVec (subst (TmVec Γ) p x)
+substTy-eraseVec refl x = refl
  
