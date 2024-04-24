@@ -275,6 +275,18 @@ eraseRen-inj≡ {ξ1 = Drop ξ1} {Keep ξ2} refl refl r = ⊥-elim (1+n≢0 (r z
 eraseRen-inj≡ {ξ1 = Drop ξ1} {Drop ξ2} refl refl r =
   cong Drop (eraseRen-inj≡ refl refl (suc-injective ∘ r))
 
+eraseRen-injVar≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {ξ1 : Ren Γ1 Γ2} {ξ2 : Ren Γ1' Γ2'} →
+                   (p : Γ1 ≡ Γ1') (q : Γ2 ≡ Γ2') →
+                   (∀{t} (x : Var Γ1 t) → eraseRen ξ1 (eraseVar x) ≡ eraseRen ξ2 (eraseVar x)) →
+                   subst₂ Ren p q ξ1 ≡ ξ2
+eraseRen-injVar≡ {ξ1 = ε} {ε} refl refl r = refl
+eraseRen-injVar≡ {ξ1 = Keep ξ1} {Keep ξ2} refl refl r =
+  cong Keep (eraseRen-injVar≡ refl refl (suc-injective ∘ r ∘ VS))
+eraseRen-injVar≡ {ξ1 = Keep ξ1} {Drop ξ2} refl refl r = ⊥-elim (0≢1+n (r V0))
+eraseRen-injVar≡ {ξ1 = Drop ξ1} {Keep ξ2} refl refl r = ⊥-elim (1+n≢0 (r V0))
+eraseRen-injVar≡ {ξ1 = Drop ξ1} {Drop ξ2} refl refl r =
+  cong Drop (eraseRen-injVar≡ refl refl (suc-injective ∘ r))
+
 eraseSub-inj≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {σ1 : Sub Γ1 Γ2} {σ2 : Sub Γ1' Γ2'} →
               (p : Γ1 ≡ Γ1') (q : Γ2 ≡ Γ2') →
               eraseSub σ1 ≗ eraseSub σ2 →
@@ -283,6 +295,15 @@ eraseSub-inj≡ {σ1 = ε} {ε} refl refl r = refl
 eraseSub-inj≡ {σ1 = σ1 ▸ e1} {σ2 ▸ e2} refl refl r = cong₂ _▸_
   (eraseSub-inj≡ refl refl (r ∘ suc))
   (erase-inj≡ refl refl (r zero))
+
+eraseSub-injVar≡ : ∀{Γ1 Γ1' Γ2 Γ2'} {σ1 : Sub Γ1 Γ2} {σ2 : Sub Γ1' Γ2'} →
+                  (p : Γ1 ≡ Γ1') (q : Γ2 ≡ Γ2') →
+                  (∀{t} (x : Var Γ1 t) → eraseSub σ1 (eraseVar x) ≡ eraseSub σ2 (eraseVar x)) →
+                  subst₂ Sub p q σ1 ≡ σ2
+eraseSub-injVar≡ {σ1 = ε} {ε} refl refl r = refl
+eraseSub-injVar≡ {σ1 = σ1 ▸ e1} {σ2 ▸ e2} refl refl r = cong₂ _▸_
+  (eraseSub-injVar≡ refl refl (r ∘ VS))
+  (erase-inj≡ refl refl (r V0))
 
 eraseVar-inj : ∀{Γ t} {x y : Var Γ t} → eraseVar x ≡ eraseVar y → x ≡ y
 eraseVar-inj = eraseVar-inj≡ refl refl
@@ -296,8 +317,18 @@ eraseVec-inj = eraseVec-inj≡ refl refl
 eraseRen-inj : ∀{Γ1 Γ2} {ξ1 ξ2 : Ren Γ1 Γ2} → eraseRen ξ1 ≗ eraseRen ξ2 → ξ1 ≡ ξ2
 eraseRen-inj = eraseRen-inj≡ refl refl
 
+eraseRen-injVar : ∀{Γ1 Γ2} {ξ1 ξ2 : Ren Γ1 Γ2} →
+                  (∀{t} (x : Var Γ1 t) → eraseRen ξ1 (eraseVar x) ≡ eraseRen ξ2 (eraseVar x)) →
+                  ξ1 ≡ ξ2
+eraseRen-injVar = eraseRen-injVar≡ refl refl
+
 eraseSub-inj : ∀{Γ1 Γ2} {σ1 σ2 : Sub Γ1 Γ2} → eraseSub σ1 ≗ eraseSub σ2 → σ1 ≡ σ2
 eraseSub-inj = eraseSub-inj≡ refl refl
+
+eraseSub-injVar : ∀{Γ1 Γ2} {σ1 σ2 : Sub Γ1 Γ2} →
+                  (∀{t} (x : Var Γ1 t) → eraseSub σ1 (eraseVar x) ≡ eraseSub σ2 (eraseVar x)) →
+                  σ1 ≡ σ2
+eraseSub-injVar = eraseSub-injVar≡ refl refl
 
 -- Type erasure commutes with typed renaming operations
 eraseRen-Keep* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ →
@@ -521,3 +552,4 @@ subst₂-eraseRen : ∀{Γ1 Γ1' Γ2 Γ2'}
                   (ξ : Ren Γ1 Γ2) →
                   eraseRen ξ ≡ eraseRen (subst₂ Ren p q ξ)
 subst₂-eraseRen refl refl ξ = refl
+ 
