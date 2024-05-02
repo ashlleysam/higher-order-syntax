@@ -416,7 +416,8 @@ eraseSub-Keep {Γ2 = Γ2} σ (VS x) =
 
 eraseSub-Keep* : ∀{Γ1 Γ2 t} (σ : Sub Γ1 Γ2) → ∀ Δ →
                  (x : Var (Δ ++ Γ1) t) →
-                 eraseSub (KeepSub* σ Δ) (eraseVar x) ≡ UKeepSub* (eraseSub σ) (length Δ) (eraseVar x)
+                 eraseSub (KeepSub* σ Δ) (eraseVar x) ≡
+                 UKeepSub* (eraseSub σ) (length Δ) (eraseVar x)
 eraseSub-Keep* σ [] x = refl
 eraseSub-Keep* σ (t ∷ Δ) V0 = refl
 eraseSub-Keep* {Γ2 = Γ2} σ (t ∷ Δ) (VS x) =

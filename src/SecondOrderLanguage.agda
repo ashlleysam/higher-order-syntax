@@ -6,7 +6,7 @@ open import Data.Empty
 open import Data.Nat
 open import Data.Nat.Properties
 open import Data.List
-open import Data.Unit
+open import Data.Unit using (⊤; tt)
 open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
@@ -117,6 +117,15 @@ data Ren : Ctx → Ctx → Set where
   Keep : ∀{Γ1 Γ2 t} → Ren Γ1 Γ2 → Ren (t ∷ Γ1) (t ∷ Γ2)
   Drop : ∀{Γ1 Γ2 t} → Ren Γ1 Γ2 → Ren Γ1 (t ∷ Γ2)
 
+-- Renamings can only increase context length
+Ren⇒≤ : ∀{Γ1 Γ2} → Ren Γ1 Γ2 → length Γ1 ≤ length Γ2
+Ren⇒≤ ε = z≤n
+Ren⇒≤ (Keep ξ) = s≤s (Ren⇒≤ ξ)
+Ren⇒≤ (Drop ξ) = ≤-step (Ren⇒≤ ξ)
+
+¬-cons-Ren : ∀{Γ t} → Ren (t ∷ Γ) Γ → ⊥
+¬-cons-Ren ξ = 1+n≰n (Ren⇒≤ ξ)
+
 ε* : ∀{Γ} → Ren [] Γ
 ε* {[]} = ε
 ε* {t ∷ Γ} = Drop ε*
@@ -156,6 +165,13 @@ _•_ : ∀{Γ1 Γ2 Γ3} → Ren Γ2 Γ3 → Ren Γ1 Γ2 → Ren Γ1 Γ3
 Keep ξ1 • Keep ξ2 = Keep (ξ1 • ξ2)
 Keep ξ1 • Drop ξ2 = Drop (ξ1 • ξ2)
 Drop ξ1 • ξ2 = Drop (ξ1 • ξ2)
+
+-- Renamings are an antisymmetric relation
+Ren-antisym : Antisymmetric _≡_ Ren
+Ren-antisym ε ε = refl
+Ren-antisym (Keep {t = t} ξ1) (Keep ξ2) = cong (t ∷_) (Ren-antisym ξ1 ξ2)
+Ren-antisym (Drop ξ1) (Keep ξ2) = ⊥-elim (¬-cons-Ren (ξ2 • ξ1))
+Ren-antisym ξ1 (Drop ξ2) = ⊥-elim (¬-cons-Ren (ξ2 • ξ1))
 
 •• : ∀{Γ1 Γ2 Γ3 Γ4} (ξ1 : Ren Γ3 Γ4) (ξ2 : Ren Γ2 Γ3) (ξ3 : Ren Γ1 Γ2) →
      (ξ1 • ξ2) • ξ3 ≡ ξ1 • (ξ2 • ξ3)
@@ -874,4 +890,4 @@ interpVecSub (_∷_ {Δ} e es) η σ =
     (cong (λ x → interpTm e x IdSub) (tmVec++∘subVec η Δ σ)
       ∙ interpTmSub e (tmVec++ η Δ) (KeepSub* σ Δ) IdSub IdSub (Id◦ (KeepSub* σ Δ) ∙ sym (◦Id (KeepSub* σ Δ))))
     (interpVecSub es η σ)
- 
+  

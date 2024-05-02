@@ -243,22 +243,22 @@ subVecTy {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} σ (e ∷ es) =
           ≡⟨ cong (subCtx (TyKeepSub* σ Γ')) (sym (subCtxι (TyDrop* TyIdRen Γ') Δ)) ⟩
         subCtx (TyKeepSub* σ Γ') (subCtx (ιₜ (TyDrop* TyIdRen Γ')) Δ)
           ≡⟨ sym (subCtx◦ (TyKeepSub* σ Γ') (ιₜ (TyDrop* TyIdRen Γ')) Δ) ⟩
-        subCtx (TyKeepSub* σ Γ' ◦ ιₜ (TyDrop* TyIdRen Γ')) Δ
+        subCtx (TyKeepSub* σ Γ' ◦ₜ ιₜ (TyDrop* TyIdRen Γ')) Δ
           ≡⟨ cong (flip subCtx Δ) (
-            TyKeepSub* σ Γ' ◦ ιₜ (TyDrop* TyIdRen Γ')
-              ≡⟨ cong (TyKeepSub* σ Γ' ◦_) (sym (TyDrop*ι TyIdRen Γ')) ⟩
-            TyKeepSub* σ Γ' ◦ TyDropSub* TyIdSub Γ'
+            TyKeepSub* σ Γ' ◦ₜ ιₜ (TyDrop* TyIdRen Γ')
+              ≡⟨ cong (TyKeepSub* σ Γ' ◦ₜ_) (sym (TyDrop*ι TyIdRen Γ')) ⟩
+            TyKeepSub* σ Γ' ◦ₜ TyDropSub* TyIdSub Γ'
               ≡⟨ sym (TyKeep*◦Drop* σ TyIdSub Γ') ⟩
-            TyDropSub* (σ ◦ TyIdSub) Γ'
+            TyDropSub* (σ ◦ₜ TyIdSub) Γ'
               ≡⟨ cong (flip TyDropSub* Γ') (◦Id σ) ⟩
             TyDropSub* σ Γ'
               ≡⟨ cong (flip TyDropSub* Γ') (sym (Id◦ σ)) ⟩
-            TyDropSub* (TyIdSub ◦ σ) Γ'
+            TyDropSub* (TyIdSub ◦ₜ σ) Γ'
               ≡⟨ TyDrop*◦ TyIdSub σ Γ' ⟩
-            TyDropSub* TyIdSub Γ' ◦ σ
-              ≡⟨ cong (_◦ σ) (TyDrop*ι TyIdRen Γ') ⟩
-            ιₜ (TyDrop* TyIdRen Γ') ◦ σ ∎) ⟩
-        subCtx (ιₜ (TyDrop* TyIdRen Γ') ◦ σ) Δ
+            TyDropSub* TyIdSub Γ' ◦ₜ σ
+              ≡⟨ cong (_◦ₜ σ) (TyDrop*ι TyIdRen Γ') ⟩
+            ιₜ (TyDrop* TyIdRen Γ') ◦ₜ σ ∎) ⟩
+        subCtx (ιₜ (TyDrop* TyIdRen Γ') ◦ₜ σ) Δ
           ≡⟨ subCtx◦ (ιₜ (TyDrop* TyIdRen Γ')) σ Δ ⟩
         subCtx (ιₜ (TyDrop* TyIdRen Γ')) (subCtx σ Δ)
           ≡⟨ subCtxι (TyDrop* TyIdRen Γ') (subCtx σ Δ) ⟩

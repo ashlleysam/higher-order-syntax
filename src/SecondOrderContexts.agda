@@ -37,7 +37,7 @@ open import SecondOrderLanguage ⅀ public
           substTy-Var to substKnd-TyVar; substCtx-Constr to substCtx-TyConstr;
           substTy-Constr to substKnd-TyConstr; substNil to substTyNil; substCons to substTyCons;
           substTy-ren to substKnd-tyRen; substCtx-ren to substCtx-tyRen; subCtx-Keep to subCtx-TyKeep;
-          subCtx-Drop to subCtx-TyDrop)
+          subCtx-Drop to subCtx-TyDrop; _◦_ to _◦ₜ_)
 
 -- Types of any kind
 Typ : KndCtx → Set
@@ -95,11 +95,11 @@ subCtxId [] = refl
 subCtxId (t ∷ Δ) = cong₂ _∷_ (subTypId t) (subCtxId Δ)
 
 subTypId◦ : ∀{Γ1 Γ2 Γ3} (σ1 : TySub Γ2 Γ3) (σ2 : TySub Γ1 Γ2) →
-            subTyp (σ1 ◦ σ2) ≗ subTyp σ1 ∘ subTyp σ2
+            subTyp (σ1 ◦ₜ σ2) ≗ subTyp σ1 ∘ subTyp σ2
 subTypId◦ σ1 σ2 (κ , t) = Σ-≡,≡↔≡ .Inverse.f (refl , tySub◦ σ1 σ2 t)
 
 subCtx◦ : ∀{Γ1 Γ2 Γ3} (σ1 : TySub Γ2 Γ3) (σ2 : TySub Γ1 Γ2) →
-           subCtx (σ1 ◦ σ2) ≗ subCtx σ1 ∘ subCtx σ2
+           subCtx (σ1 ◦ₜ σ2) ≗ subCtx σ1 ∘ subCtx σ2
 subCtx◦ σ1 σ2 [] = refl
 subCtx◦ σ1 σ2 (t ∷ Δ) = cong₂ _∷_ (subTypId◦ σ1 σ2 t) (subCtx◦ σ1 σ2 Δ)
 
