@@ -371,6 +371,35 @@ eraseVec-distr-ren ξ (_∷_ {Δ = Δ} {Σ = Σ} e es) = cong₃ eraseCons
   refl
   (eraseVec-distr-ren ξ es)
 
+UKeepEraseExt : ∀{Γ ξ1 ξ2} → (∀{t} (x : Var Γ t) → ξ1 (eraseVar x) ≡ ξ2 (eraseVar x)) →
+                   ∀{s t} (x : Var (s ∷ Γ) t) → UKeep ξ1 (eraseVar x) ≡ UKeep ξ2 (eraseVar x)
+UKeepEraseExt p V0 = refl
+UKeepEraseExt p (VS x) = cong suc (p x)
+
+UKeepEraseExt* : ∀{Γ ξ1 ξ2} → (∀{t} (x : Var Γ t) → ξ1 (eraseVar x) ≡ ξ2 (eraseVar x)) →
+                    ∀ Δ → ∀{t} (x : Var (Δ ++ Γ) t) → UKeep* ξ1 (length Δ) (eraseVar x) ≡ UKeep* ξ2 (length Δ) (eraseVar x)
+UKeepEraseExt* p [] = p
+UKeepEraseExt* {ξ1 = ξ1} {ξ2} p (t ∷ Δ) =
+  UKeepEraseExt {ξ1 = UKeep* ξ1 (length Δ)} {UKeep* ξ2 (length Δ)}
+    (UKeepEraseExt* {ξ1 = ξ1} {ξ2} p Δ)
+
+renUntyExtErase : ∀{Γ} {ξ1 ξ2 : URen} →
+                  (∀{t} (x : Var Γ t) → ξ1 (eraseVar x) ≡ ξ2 (eraseVar x)) →
+                  ∀{t} (e : Tm Γ t) → renUnty ξ1 (erase e) ≡ renUnty ξ2 (erase e)
+renVecUntyExtErase : ∀{Γ} {ξ1 ξ2 : URen} →
+                     (∀{t} (x : Var Γ t) → ξ1 (eraseVar x) ≡ ξ2 (eraseVar x)) →
+                      ∀{Σ} (es : TmVec Γ Σ) → renVecUnty ξ1 (eraseVec es) ≡ renVecUnty ξ2 (eraseVec es)
+
+renUntyExtErase p (var x) = cong var (p x)
+renUntyExtErase p (constr s es) =
+  cong (constr s) (renVecUntyExtErase p es)
+
+renVecUntyExtErase p [] = refl
+renVecUntyExtErase p (_∷_ {Δ = Δ} e es) = cong₃ eraseCons
+  (renUntyExtErase (UKeepEraseExt* p Δ) e)
+  refl
+  (renVecUntyExtErase p es)
+
 -- Type erasure distributes over substitution
 eraseVar-distr-sub : ∀{Γ1 Γ2 t} (σ : Sub Γ1 Γ2) (x : Var Γ1 t) →
                     erase (subVar σ x) ≡ eraseSub σ (eraseVar x)
@@ -548,9 +577,32 @@ subst₂-eraseSub : ∀{Γ1 Γ1' Γ2 Γ2'}
                   eraseSub σ ≡ eraseSub (subst₂ Sub p q σ)
 subst₂-eraseSub refl refl σ = refl
 
+subst-fst-eraseSub : ∀{Γ1 Γ1' Γ2}
+                    (p : Γ1 ≡ Γ1')
+                    (σ : Sub Γ1 Γ2) →
+                    eraseSub σ ≡ eraseSub (subst (flip Sub Γ2) p σ)
+subst-fst-eraseSub refl σ = refl
+
+subst-snd-eraseSub : ∀{Γ1 Γ2 Γ2'}
+                    (p : Γ2 ≡ Γ2')
+                    (σ : Sub Γ1 Γ2) →
+                    eraseSub σ ≡ eraseSub (subst (Sub Γ1) p σ)
+subst-snd-eraseSub refl σ = refl
+
 subst₂-eraseRen : ∀{Γ1 Γ1' Γ2 Γ2'}
                   (p : Γ1 ≡ Γ1') (q : Γ2 ≡ Γ2')
                   (ξ : Ren Γ1 Γ2) →
                   eraseRen ξ ≡ eraseRen (subst₂ Ren p q ξ)
 subst₂-eraseRen refl refl ξ = refl
  
+subst-fst-eraseRen : ∀{Γ1 Γ1' Γ2}
+                    (p : Γ1 ≡ Γ1')
+                    (ξ : Ren Γ1 Γ2) →
+                    eraseRen ξ ≡ eraseRen (subst (flip Ren Γ2) p ξ)
+subst-fst-eraseRen refl ξ = refl
+ 
+subst-snd-eraseRen : ∀{Γ1 Γ2 Γ2'}
+                    (p : Γ2 ≡ Γ2')
+                    (ξ : Ren Γ1 Γ2) →
+                    eraseRen ξ ≡ eraseRen (subst (Ren Γ1) p ξ)
+subst-snd-eraseRen refl ξ = refl
