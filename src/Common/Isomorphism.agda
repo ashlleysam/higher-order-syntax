@@ -76,14 +76,16 @@ _≅∎ _ = ≅-refl
 syntax step-≅  A B≅C A≅B = A ≅⟨  A≅B ⟩ B≅C
 syntax step-≅˘ A B≅C B≅A = A ≅˘⟨ B≅A ⟩ B≅C
 
+-- Taking products respects isomorphisms
 ×-≅ : ∀{a1 a2 b1 b2} {A1 : Set a1} {A2 : Set a2}
-           {B1 : Set b1} {B2 : Set b2} →
-           A1 ≅ A2 → B1 ≅ B2 → (A1 × B1) ≅ (A2 × B2)
+      {B1 : Set b1} {B2 : Set b2} →
+      A1 ≅ A2 → B1 ≅ B2 → (A1 × B1) ≅ (A2 × B2)
 forward (×-≅ p q) (x1 , y1) = p .forward x1 , q .forward y1
 backward (×-≅ p q) (x2 , y2) = p .backward x2 , q .backward y2
 section (×-≅ p q) (x1 , y1) = cong₂ _,_ (p .section x1) (q .section y1)
 retract (×-≅ p q) (x2 , y2) = cong₂ _,_ (p .retract x2) (q .retract y2)
 
+-- Taking sums respects isomorphisms
 ⊎-≅ : ∀{a1 a2 b1 b2} {A1 : Set a1} {A2 : Set a2}
       {B1 : Set b1} {B2 : Set b2} →
       A1 ≅ A2 → B1 ≅ B2 → (A1 ⊎ B1) ≅ (A2 ⊎ B2)
@@ -96,6 +98,7 @@ section (⊎-≅ p q) (inr y1) = cong inr (q .section y1)
 retract (⊎-≅ p q) (inl x2) = cong inl (p .retract x2)
 retract (⊎-≅ p q) (inr y2) = cong inr (q .retract y2)
 
+-- Nested sigma types with disjoint predicates can be separated
 Σ-×-Σ-≅ : ∀{a b ℓ1 ℓ2} (A : Set a) (P : A → Set ℓ1)
           (B : Set b) (Q : B → Set ℓ2) →
           ((Σ[ x ∈ A ] (P x)) × (Σ[ y ∈ B ] (Q y))) ≅ 
@@ -105,6 +108,9 @@ backward (Σ-×-Σ-≅ A P B Q) (x , y , Px , Qy) = (x , Px) , (y , Qy)
 section (Σ-×-Σ-≅ A P B Q) ((x , Px) , (y , Qy)) = refl
 retract (Σ-×-Σ-≅ A P B Q) (x , y , Px , Qy) = refl
 
+-- A proof that some list satisfies a property is
+-- isomorphic to either the empty list satisfying it,
+-- or some non-empty list satisfying it
 Σ-List-≅ : ∀{a ℓ} (A : Set a) (P : List A → Set ℓ) →
             (Σ[ xs ∈ List A ] (P xs)) ≅
             (P [] ⊎ (Σ[ x ∈ A ] Σ[ xs ∈ List A ] (P (x ∷ xs))))
@@ -117,12 +123,14 @@ section (Σ-List-≅ A P) (x ∷ xs , Px∷xs) = refl
 retract (Σ-List-≅ A P) (inl P[]) = refl
 retract (Σ-List-≅ A P) (inr (x , xs , Px∷xs)) = refl
 
+-- Empty types are annihilators for products
 ⊥-×-≅ : ∀{a b} {A : Set a} → (A → ⊥) → (B : Set b) → (A × B) ≅ ⊥
 forward (⊥-×-≅ ¬A B) (x , y) = ⊥-elim (¬A x)
 backward (⊥-×-≅ ¬A B) ()
 section (⊥-×-≅ ¬A B) (x , y) = ⊥-elim (¬A x)
 retract (⊥-×-≅ ¬A B) ()
 
+-- Empty types are identities for sums
 ⊥-⊎-≅ : ∀{a b} {A : Set a} → (A → ⊥) → (B : Set b) → (A ⊎ B) ≅ B
 forward (⊥-⊎-≅ ¬A B) (inl x) = ⊥-elim (¬A x)
 forward (⊥-⊎-≅ ¬A B) (inr y) = y
@@ -131,6 +139,7 @@ section (⊥-⊎-≅ ¬A B) (inl x) = ⊥-elim (¬A x)
 section (⊥-⊎-≅ ¬A B) (inr y) = refl
 retract (⊥-⊎-≅ ¬A B) y = refl
 
+-- Taking products is commutitive
 ×-comm : ∀{a b} (A : Set a) (B : Set b) →
          (A × B) ≅ (B × A)
 forward (×-comm A B) (x , y) = y , x 
@@ -138,6 +147,7 @@ backward (×-comm A B) (y , x) = x , y
 section (×-comm A B) (x , y) = refl
 retract (×-comm A B) (y , x) = refl
 
+-- Taking products is associative
 ×-assoc : ∀{a b c} (A : Set a) (B : Set b) (C : Set c) →
           ((A × B) × C) ≅ (A × B × C)
 forward (×-assoc A B C) ((x , y) , z) = x , y , z 
@@ -145,6 +155,7 @@ backward (×-assoc A B C) (x , y , z) = (x , y) , z
 section (×-assoc A B C) ((x , y) , z) = refl
 retract (×-assoc A B C) (x , y , z) = refl
 
+-- Isomorphic extensionality for sigma types
 Σ-≅ : ∀{a b1 b2} {A : Set a} {B1 : A → Set b1} {B2 : A → Set b2} →
       ((x : A) → B1 x ≅ B2 x) →
       (Σ[ x ∈ A ] (B1 x)) ≅ (Σ[ x ∈ A ] (B2 x))

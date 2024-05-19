@@ -212,7 +212,7 @@ mor-var (id-mor ⅀) refl refl x = var x
       refl
       refl)
 
--- Functions which are extensionally equivalent to a morphism
+-- Functions which behave as a morphism
 record IsParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2)
   (f : ∀{Γ1 Γ2 κ1 κ2} → R .α Γ1 Γ2 → R .β κ1 κ2 → Tm ⅀1 Γ1 κ1 → Tm ⅀2 Γ2 κ2)
   (f-vec : ∀{Γ1 Γ2 Σ1 Σ2} → R .α Γ1 Γ2 → ⋆ (R .α ×ᵣ R .β) Σ1 Σ2 → TmVec ⅀1 Γ1 Σ1 → TmVec ⅀2 Γ2 Σ2)
@@ -252,7 +252,7 @@ record IsParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2)
   γ-ty-≡ f-mor s βκ = is-γ-ty-≡ s βκ
   γ-resp-arg f-mor s βκ = is-γ-resp-arg s βκ
 
-  -- f is indeed equivalent to this morphism
+  -- f is extensionally equivalent to this morphism
   f-≗-f-mor : ∀{Γ1 Γ2 κ1 κ2} (αΓ : R .α Γ1 Γ2) (βκ : R .β κ1 κ2) (e : Tm ⅀1 Γ1 κ1) →
               f αΓ βκ e ≡ mor f-mor αΓ βκ e
   f-vec-≗-f-mor-vec : ∀{Γ1 Γ2 Σ1 Σ2} (αΓ : R .α Γ1 Γ2) (αβ*Σ : ⋆ (R .α ×ᵣ R .β) Σ1 Σ2)
@@ -279,7 +279,7 @@ record IsParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2)
 
 open IsParLangMor public
 
--- Composition of partial language morphisms
+-- Composition of morphisms
 _∘ₘ_ : ∀{⅀1 ⅀2 ⅀3 R S} → ParLangMor ⅀2 ⅀3 R → ParLangMor ⅀1 ⅀2 S → ParLangMor ⅀1 ⅀3 (R ∘ᵣₖ S)
 mor-var (𝕄1 ∘ₘ 𝕄2) (Γ2 , α23 , α12) (κ2 , β23 , β12) x =
   mor 𝕄1 α23 β23 (𝕄2 .mor-var α12 β12 x)
@@ -307,6 +307,7 @@ mor-var (𝕄1 ∘ₘ 𝕄2) (Γ2 , α23 , α12) (κ2 , β23 , β12) x =
       𝕄1 .γ-resp-arg (𝕄2 .γ s1) Pos[γ2[s1]]-R-Pos[γ1[γ2[s1]]] ,
       𝕄2 .γ-resp-arg s1 β12))
 
+-- Composing two morphisms behaves as the composition of morphisms
 ∘ₘ-is-∘ : ∀{⅀1 ⅀2 ⅀3 R S} (𝕄1 : ParLangMor ⅀2 ⅀3 R) (𝕄2 : ParLangMor ⅀1 ⅀2 S) →
           IsParLangMor ⅀1 ⅀3 (R ∘ᵣₖ S)
             (λ αΓ βκ e → mor 𝕄1 (αΓ .snd .fst) (βκ .snd .fst) (mor 𝕄2 (αΓ .snd .snd) (βκ .snd .snd) e))
