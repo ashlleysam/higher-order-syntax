@@ -606,3 +606,122 @@ subst-snd-eraseRen : ∀{Γ1 Γ2 Γ2'}
                     (ξ : Ren Γ1 Γ2) →
                     eraseRen ξ ≡ eraseRen (subst (Ren Γ1) p ξ)
 subst-snd-eraseRen refl ξ = refl
+
+---------------------
+-- TYPING JUDGMENT --
+---------------------
+
+-- Explicit typing judgment for variables
+data _⊢var_∶_ : Ctx → ℕ → ⅀ .Knd → Set where
+  ⊢0 : ∀{Γ κ} → (κ ∷ Γ) ⊢var 0 ∶ κ
+  ⊢S : ∀{Γ κ1 κ2 x} →
+        Γ ⊢var x ∶ κ1 →
+        (κ2 ∷ Γ) ⊢var suc x ∶ κ1
+
+-- The typing judgment for variables is a proposition
+⊢var-isProp : ∀{Γ x κ} → isProp (Γ ⊢var x ∶ κ)
+⊢var-isProp ⊢0 ⊢0 = refl
+⊢var-isProp (⊢S p) (⊢S q) = cong ⊢S (⊢var-isProp p q)
+
+-- Explicit typing judgment for terms
+data _⊢_∶_ (Γ : Ctx) : UTm → ⅀ .Knd → Set
+-- Explicit typing judgment for vectors
+data _⊢vec_∶_ (Γ : Ctx) : UTmVec → List (Ctx × (⅀ .Knd)) → Set
+
+data _⊢_∶_ Γ where
+  ⊢var : ∀{x κ} → Γ ⊢var x ∶ κ → Γ ⊢ var x ∶ κ
+  ⊢constr : ∀ s {es} →
+            Γ ⊢vec es ∶ ⅀ .TyPos s .fst →
+            Γ ⊢ constr s es ∶ ⅀ .TyPos s .snd
+
+data _⊢vec_∶_ Γ where
+  ⊢[] : Γ ⊢vec [] ∶ []
+  ⊢∷ : ∀{e es Δ κ Σ} →
+       (Δ ++ Γ) ⊢ e ∶ κ →
+       Γ ⊢vec es ∶ Σ →
+       Γ ⊢vec (e , length Δ) ∷ es ∶ ((Δ , κ) ∷ Σ)
+
+-- The typing judgment is a proposition
+⊢-isProp : ∀{Γ e κ} → isProp (Γ ⊢ e ∶ κ)
+⊢vec-isProp : ∀{Γ es Σ} → isProp (Γ ⊢vec es ∶ Σ)
+
+⊢-isProp (⊢var x) (⊢var y) = cong ⊢var (⊢var-isProp x y)
+⊢-isProp (⊢constr s es1) (⊢constr .s es2) = cong (⊢constr s) (⊢vec-isProp es1 es2)
+
+⊢vec-isProp ⊢[] ⊢[] = refl
+⊢vec-isProp (⊢∷ e1 es1) (⊢∷ e2 es2) = cong₂ ⊢∷ (⊢-isProp e1 e2) (⊢vec-isProp es1 es2)
+
+-- An erased term is well-typed
+⊢eraseVar : ∀{Γ κ} (x : Var Γ κ) → Γ ⊢var eraseVar x ∶ κ
+⊢eraseVar V0 = ⊢0
+⊢eraseVar (VS x) = ⊢S (⊢eraseVar x)
+
+⊢erase : ∀{Γ κ} (e : Tm Γ κ) → Γ ⊢ erase e ∶ κ
+⊢eraseVec : ∀{Γ Σ} (es : TmVec Γ Σ) → Γ ⊢vec eraseVec es ∶ Σ
+
+⊢erase (var x) = ⊢var (⊢eraseVar x)
+⊢erase (constr s es) = ⊢constr s (⊢eraseVec es)
+
+⊢eraseVec [] = ⊢[]
+⊢eraseVec (e ∷ es) = ⊢∷ (⊢erase e) (⊢eraseVec es) 
+
+{-
+Convert a proof of well-typedness of a term to
+an inherently well-typed term
+-}
+toVar : ∀{x Γ κ} → Γ ⊢var x ∶ κ → Var Γ κ
+toVar ⊢0 = V0
+toVar (⊢S x) = VS (toVar x)
+
+toTm : ∀{e Γ κ} → Γ ⊢ e ∶ κ → Tm Γ κ
+toTmVec : ∀{es Γ Σ} → Γ ⊢vec es ∶ Σ → TmVec Γ Σ
+
+toTm (⊢var x) = var (toVar x)
+toTm (⊢constr s es) = constr s (toTmVec es)
+
+toTmVec ⊢[] = []
+toTmVec (⊢∷ e es) = toTm e ∷ toTmVec es
+
+{-
+Converting a proof of well-typedness of a term to
+an inherently well-typed term and then erasing
+the type results in the original raw term
+-}
+eraseVar∘toVar : ∀{x Γ κ} (⊢x : Γ ⊢var x ∶ κ) → eraseVar (toVar ⊢x) ≡ x
+eraseVar∘toVar ⊢0 = refl
+eraseVar∘toVar (⊢S x) = cong suc (eraseVar∘toVar x)
+
+erase∘toTm : ∀{e Γ κ} (⊢e : Γ ⊢ e ∶ κ) → erase (toTm ⊢e) ≡ e
+eraseVec∘toTmVec : ∀{es Γ Σ} (⊢es : Γ ⊢vec es ∶ Σ) → eraseVec (toTmVec ⊢es) ≡ es
+
+erase∘toTm (⊢var x) = cong var (eraseVar∘toVar x)
+erase∘toTm (⊢constr s es) = cong (constr s) (eraseVec∘toTmVec es)
+
+eraseVec∘toTmVec ⊢[] = refl
+eraseVec∘toTmVec (⊢∷ e es) = cong₃ eraseCons
+  (erase∘toTm e)
+  refl
+  (eraseVec∘toTmVec es)
+
+toVar∘⊢eraseVar : ∀{Γ κ} (x : Var Γ κ) → toVar (⊢eraseVar x) ≡ x
+toVar∘⊢eraseVar V0 = refl
+toVar∘⊢eraseVar (VS x) = cong VS (toVar∘⊢eraseVar x)
+
+toTm∘⊢erase : ∀{Γ κ} (e : Tm Γ κ) → toTm (⊢erase e) ≡ e
+toTmVec∘⊢eraseVec : ∀{Γ Σ} (es : TmVec Γ Σ) → toTmVec (⊢eraseVec es) ≡ es
+
+toTm∘⊢erase (var x) = cong var (toVar∘⊢eraseVar x)
+toTm∘⊢erase (constr s es) = cong (constr s) (toTmVec∘⊢eraseVec es)
+
+toTmVec∘⊢eraseVec [] = refl
+toTmVec∘⊢eraseVec (e ∷ es) = cong₂ _∷_ (toTm∘⊢erase e) (toTmVec∘⊢eraseVec es)
+
+-- Inherent and non-inherent representations are isomorphic
+untyped≅inherent : ∀{Γ κ} → (Σ[ e ∈ UTm ] Γ ⊢ e ∶ κ) ≅ Tm Γ κ
+untyped≅inherent = Σ-Prop-≅
+  (λ _ → ⊢-isProp)
+  (λ _ → toTm)
+  erase
+  (λ e → erase∘toTm)
+  ⊢erase 
+  toTm∘⊢erase 

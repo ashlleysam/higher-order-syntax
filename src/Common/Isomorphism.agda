@@ -13,6 +13,8 @@ open import Function
 
 open ≡-Reasoning
 
+open import Common.Equality
+
 module Common.Isomorphism where
 
 -- Isomorphisms between sets
@@ -76,6 +78,29 @@ _≅∎ _ = ≅-refl
 syntax step-≅  A B≅C A≅B = A ≅⟨  A≅B ⟩ B≅C
 syntax step-≅˘ A B≅C B≅A = A ≅˘⟨ B≅A ⟩ B≅C
 
+-- Equality implies isomorphism
+≡-⇒-≅ : ∀{a} {A B : Set a} → A ≡ B → A ≅ B
+forward (≡-⇒-≅ p) = transport p
+backward (≡-⇒-≅ p) = transport (sym p)
+section (≡-⇒-≅ p) x = transport-∘ p (sym p) x ∙ cong (λ q → transport q x) (trans-symʳ p)
+retract (≡-⇒-≅ p) y = transport-∘ (sym p) p y ∙ cong (λ q → transport q y) (trans-symˡ p)
+
+-- Equality types are isomorphic under mapping each side with an injective function
+inj-≅ : ∀{a b} {A : Set a} {B : Set b} {f : A → B} →
+        Injective _≡_ _≡_ f →
+        ∀ x y → (f x ≡ f y) ≅ (x ≡ y)
+forward (inj-≅ f-inj x y) fx≡fy = f-inj fx≡fy
+backward (inj-≅ {f = f} f-inj x y) x≡y = cong f x≡y
+section (inj-≅ {f = f} f-inj x y) fx≡fy = UIP (cong f (f-inj fx≡fy)) fx≡fy
+retract (inj-≅ {f = f} f-inj x y) x≡y = UIP (f-inj (cong f x≡y)) x≡y
+
+-- Equality types are isomorphic under swapping the arguments
+swap-≡ : ∀{a} {A : Set a} {x y : A} → (x ≡ y) ≅ (y ≡ x)
+forward swap-≡ p = sym p
+backward swap-≡ p = sym p
+section swap-≡ refl = refl
+retract swap-≡ refl = refl
+
 -- Taking products respects isomorphisms
 ×-≅ : ∀{a1 a2 b1 b2} {A1 : Set a1} {A2 : Set a2}
       {B1 : Set b1} {B2 : Set b2} →
@@ -107,6 +132,18 @@ forward (Σ-×-Σ-≅ A P B Q) ((x , Px) , (y , Qy)) = x , y , Px , Qy
 backward (Σ-×-Σ-≅ A P B Q) (x , y , Px , Qy) = (x , Px) , (y , Qy)
 section (Σ-×-Σ-≅ A P B Q) ((x , Px) , (y , Qy)) = refl
 retract (Σ-×-Σ-≅ A P B Q) (x , y , Px , Qy) = refl
+
+{-
+A sigma type where the predicate has an equaity constraint
+with a constant can eliminate the equality constraint by
+substituting the constant in the rest of the predicate
+-}
+Σ-≡-×-≅ : ∀{a ℓ} {A : Set a} (y : A) (P : A → Set ℓ) →
+          (Σ[ x ∈ A ] (x ≡ y × P x)) ≅ P y
+forward (Σ-≡-×-≅ y P) (z , z≡y , Pz) = subst P z≡y Pz
+backward (Σ-≡-×-≅ y P) Py = y , refl , Py
+section (Σ-≡-×-≅ y P) (.y , refl , Pz) = Σ-≡-→-≡-Σ refl refl
+retract (Σ-≡-×-≅ y P) Py = refl
 
 -- A proof that some list satisfies a property is
 -- isomorphic to either the empty list satisfying it,
@@ -159,7 +196,22 @@ retract (×-assoc A B C) (x , y , z) = refl
 Σ-≅ : ∀{a b1 b2} {A : Set a} {B1 : A → Set b1} {B2 : A → Set b2} →
       ((x : A) → B1 x ≅ B2 x) →
       (Σ[ x ∈ A ] (B1 x)) ≅ (Σ[ x ∈ A ] (B2 x))
-forward (Σ-≅ p) (x , y) = x , p x .forward y 
+forward (Σ-≅ p) (x , y) = x , p x .forward y     
 backward (Σ-≅ p) (x , y) = x , p x .backward y
 section (Σ-≅ p) (x , y) = cong (x ,_) (p x .section y)
-retract (Σ-≅ p) (x , y) = cong (x ,_) (p x .retract y)      
+retract (Σ-≅ p) (x , y) = cong (x ,_) (p x .retract y)
+
+-- Prove an isomorphism with a sigma type whose predicate is a proposition
+Σ-Prop-≅ : ∀{a b ℓ} {A : Set a} {B : Set b}
+            {P : A → Set ℓ} →
+            (∀ x → isProp (P x)) →
+            (f : (x : A) → P x → B)
+            (g : B → A) →
+            (∀ x Px → g (f x Px) ≡ x) →
+            (Pg : ∀ y → P (g y)) →
+            (∀ y → f (g y) (Pg y) ≡ y) →
+            (Σ[ x ∈ A ] (P x)) ≅ B
+forward (Σ-Prop-≅ P-isProp f g r Pg s) (x , Px) = f x Px 
+backward (Σ-Prop-≅ P-isProp f g r Pg s) y = g y , Pg y
+section (Σ-Prop-≅ P-isProp f g r Pg s) (x , Px) = Σ-≡-→-≡-Σ (r x Px) (P-isProp x _ _)
+retract (Σ-Prop-≅ P-isProp f g r Pg s) y = s y            
