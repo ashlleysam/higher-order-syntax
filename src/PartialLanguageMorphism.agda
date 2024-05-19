@@ -52,17 +52,17 @@ record ParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2) :
     mor-var : ∀{Γ1 Γ2 κ1 κ2} → R .α Γ1 Γ2 → R .β κ1 κ2 →
               Var ⅀1 Γ1 κ1 → Tm ⅀2 Γ2 κ2
     -- How constructors are mapped under the morphism
-    γ : ⅀1 .TyShape → ⅀2 .TyShape
+    γ : ∀{κ} (s : ⅀1 .TyShape) → R .β (⅀1 .TyPos s .snd) κ →  ⅀2 .TyShape
     -- γ respects constructor types
     γ-ty-≡ : ∀{κ} (s : ⅀1 .TyShape) →
-              R .β (⅀1 .TyPos s .snd) κ →
-              ⅀2 .TyPos (γ s) .snd ≡ κ
+              (p : R .β (⅀1 .TyPos s .snd) κ) →
+              ⅀2 .TyPos (γ s p) .snd ≡ κ
     -- γ preserves relatedness of constructor argument types
     γ-resp-arg : ∀{κ} (s : ⅀1 .TyShape) →
-                 R .β (⅀1 .TyPos s .snd) κ →
+                 (p : R .β (⅀1 .TyPos s .snd) κ) →
                  ⋆ (R .α ×ᵣ R .β)
                   (⅀1 .TyPos s .fst)
-                  (⅀2 .TyPos (γ s) .fst)
+                  (⅀2 .TyPos (γ s p) .fst)
 
   -- The definition of the morphism
   mor : ∀{Γ1 Γ2 κ1 κ2} → R .α Γ1 Γ2 → R .β κ1 κ2 →
@@ -75,7 +75,7 @@ record ParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2) :
   -- Use γ to replace the constructor
   mor {Γ1} {Γ2} {.(⅀1 .TyPos s .snd)} {κ2} αΓ βκ (constr s es) =
     subst (Tm ⅀2 Γ2) (γ-ty-≡ s βκ) (
-      constr (γ s) (mor-vec αΓ (γ-resp-arg s βκ) es))
+      constr (γ s βκ) (mor-vec αΓ (γ-resp-arg s βκ) es))
 
   -- The morphism acts identically on subterms
   mor-vec {Σ1 = []} {[]} p q [] = []
@@ -90,7 +90,7 @@ record ParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2) :
 
   erase-mor αΓ βκ (var x) = erase ⅀2 (mor-var αΓ βκ x)
   erase-mor αΓ βκ (constr s es) =
-    constr (γ s) (erase-mor-vec αΓ (γ-resp-arg s βκ) es)
+    constr (γ s βκ) (erase-mor-vec αΓ (γ-resp-arg s βκ) es)
 
   erase-mor-vec {Σ1 = []} {[]} αΓ (lift tt) [] = []
   erase-mor-vec {Σ1 = (Δ1 , κ1) ∷ Σ1} {(Δ2 , κ2) ∷ Σ2} αΓ ((αΔ , βκ) , αβ*Σ) (e ∷ es) =
@@ -107,12 +107,12 @@ record ParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2) :
   erase-mor-≡ {Γ1} {Γ2} αΓ βκ (constr s es) =
     erase ⅀2 (
       subst (Tm ⅀2 Γ2) (γ-ty-≡ s βκ) (
-        constr (γ s) (mor-vec αΓ (γ-resp-arg s βκ) es)))
+        constr (γ s βκ) (mor-vec αΓ (γ-resp-arg s βκ) es)))
       ≡⟨ sym (substTy-erase ⅀2 (γ-ty-≡ s βκ) (
-          constr (γ s) (mor-vec αΓ (γ-resp-arg s βκ) es))) ⟩
-    constr (γ s) (eraseVec ⅀2 (mor-vec αΓ (γ-resp-arg s βκ) es))
-      ≡⟨ cong (constr (γ s)) (erase-mor-vec-≡ αΓ (γ-resp-arg s βκ) es) ⟩
-    constr (γ s) (erase-mor-vec αΓ (γ-resp-arg s βκ) es) ∎
+          constr (γ s βκ) (mor-vec αΓ (γ-resp-arg s βκ) es))) ⟩
+    constr (γ s βκ) (eraseVec ⅀2 (mor-vec αΓ (γ-resp-arg s βκ) es))
+      ≡⟨ cong (constr (γ s βκ)) (erase-mor-vec-≡ αΓ (γ-resp-arg s βκ) es) ⟩
+    constr (γ s βκ) (erase-mor-vec αΓ (γ-resp-arg s βκ) es) ∎
 
   erase-mor-vec-≡ {Σ1 = []} {[]} αΓ (lift tt) [] = refl
   erase-mor-vec-≡ {Σ1 = (Δ1 , κ1) ∷ Σ1} {(Δ2 , κ2) ∷ Σ2} αΓ ((αΔ , βκ) , αβ*Σ) (e ∷ es) =
@@ -144,10 +144,10 @@ record ParLangMor≡ {⅀1 ⅀2 : SecondOrderSignature} {R : CtxKndRel ⅀1 ⅀2
   field
     -- The modified constructors will be identical
     γ1≗γ2 : ∀{Σ} (s : ⅀1 .TyShape) (βκ : R .β (⅀1 .TyPos s .snd) Σ) →
-            γ 𝕄1 s ≡ γ 𝕄2 s
+            γ 𝕄1 s βκ ≡ γ 𝕄2 s βκ
     -- The proofs that constructors preserve relatedness are equivalent
     γ-resp-arg-≡ : ∀{Σ} (s : ⅀1 .TyShape) (βκ : R .β (⅀1 .TyPos s .snd) Σ)
-                   (p : ⅀2 .TyPos (γ 𝕄1 s) .fst ≡ ⅀2 .TyPos (γ 𝕄2 s) .fst) →
+                   (p : ⅀2 .TyPos (γ 𝕄1 s βκ) .fst ≡ ⅀2 .TyPos (γ 𝕄2 s βκ) .fst) →
                    subst (⋆ (R .α ×ᵣ R .β) (⅀1 .TyPos s .fst)) p (γ-resp-arg 𝕄1 s βκ)
                    ≡ γ-resp-arg 𝕄2 s βκ
     -- The morphisms are identical on variables
@@ -164,36 +164,36 @@ record ParLangMor≡ {⅀1 ⅀2 : SecondOrderSignature} {R : CtxKndRel ⅀1 ⅀2
   mor-≡ {Γ1} {Γ2} {.(⅀1 .TyPos s .snd)} {κ2} αΓ βκ (constr s es) = erase-inj ⅀2 (
     erase ⅀2
       (subst (Tm ⅀2 Γ2) (γ-ty-≡ 𝕄1 s βκ)
-        (constr (γ 𝕄1 s) (mor-vec 𝕄1 αΓ (γ-resp-arg 𝕄1 s βκ) es)))
+        (constr (γ 𝕄1 s βκ) (mor-vec 𝕄1 αΓ (γ-resp-arg 𝕄1 s βκ) es)))
       ≡⟨ sym (substTy-erase ⅀2 (γ-ty-≡ 𝕄1 s βκ)
-          (constr (γ 𝕄1 s) (mor-vec 𝕄1 αΓ (γ-resp-arg 𝕄1 s βκ) es))) ⟩
-    constr (γ 𝕄1 s) (eraseVec ⅀2 (mor-vec 𝕄1 αΓ (γ-resp-arg 𝕄1 s βκ) es))
-      ≡⟨ cong (λ x → constr (γ 𝕄1 s) (eraseVec ⅀2 x)) (
+          (constr (γ 𝕄1 s βκ) (mor-vec 𝕄1 αΓ (γ-resp-arg 𝕄1 s βκ) es))) ⟩
+    constr (γ 𝕄1 s βκ) (eraseVec ⅀2 (mor-vec 𝕄1 αΓ (γ-resp-arg 𝕄1 s βκ) es))
+      ≡⟨ cong (λ x → constr (γ 𝕄1 s βκ) (eraseVec ⅀2 x)) (
           mor-vec-≡ αΓ (γ-resp-arg 𝕄1 s βκ) es) ⟩
-    constr (γ 𝕄1 s) (eraseVec ⅀2 (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es))
+    constr (γ 𝕄1 s βκ) (eraseVec ⅀2 (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es))
       ≡⟨ cong (λ x → constr x (eraseVec ⅀2 (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es))) 
           (γ1≗γ2 s βκ) ⟩
-    constr (γ 𝕄2 s) (eraseVec ⅀2 (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es))
-      ≡⟨ cong (constr (γ 𝕄2 s)) (erase-mor-vec-≡ 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es) ⟩
-    constr (γ 𝕄2 s) (erase-mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es)
-      ≡⟨ cong (constr (γ 𝕄2 s)) (sym (
+    constr (γ 𝕄2 s βκ) (eraseVec ⅀2 (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es))
+      ≡⟨ cong (constr (γ 𝕄2 s βκ)) (erase-mor-vec-≡ 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es) ⟩
+    constr (γ 𝕄2 s βκ) (erase-mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) es)
+      ≡⟨ cong (constr (γ 𝕄2 s βκ)) (sym (
           erase-mor-vec-subst-≡ 𝕄2 αΓ (γ-resp-arg 𝕄1 s βκ) (
             cong (λ x → ⅀2 .TyPos x .fst) (γ1≗γ2 s βκ))
           es)) ⟩
-    constr (γ 𝕄2 s) (erase-mor-vec 𝕄2 αΓ (
+    constr (γ 𝕄2 s βκ) (erase-mor-vec 𝕄2 αΓ (
       subst (⋆ (R .α ×ᵣ R .β) (⅀1 .TyPos s .fst)) (
         cong (λ x → ⅀2 .TyPos x .fst) (γ1≗γ2 s βκ)) (γ-resp-arg 𝕄1 s βκ))
       es)
-      ≡⟨ cong (λ x → constr (γ 𝕄2 s) (erase-mor-vec 𝕄2 αΓ x es))
+      ≡⟨ cong (λ x → constr (γ 𝕄2 s βκ) (erase-mor-vec 𝕄2 αΓ x es))
           (γ-resp-arg-≡ s βκ (cong (λ x → ⅀2 .TyPos x .fst) (γ1≗γ2 s βκ))) ⟩
-    constr (γ 𝕄2 s) (erase-mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es)
-      ≡⟨ sym (cong (constr (γ 𝕄2 s)) (erase-mor-vec-≡ 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es)) ⟩
-    constr (γ 𝕄2 s) (eraseVec ⅀2 (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es))
+    constr (γ 𝕄2 s βκ) (erase-mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es)
+      ≡⟨ sym (cong (constr (γ 𝕄2 s βκ)) (erase-mor-vec-≡ 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es)) ⟩
+    constr (γ 𝕄2 s βκ) (eraseVec ⅀2 (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es))
       ≡⟨ substTy-erase ⅀2 (γ-ty-≡ 𝕄2 s βκ)
-          (constr (γ 𝕄2 s) (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es)) ⟩
+          (constr (γ 𝕄2 s βκ) (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es)) ⟩
     erase ⅀2
       (subst (Tm ⅀2 Γ2) (γ-ty-≡ 𝕄2 s βκ)
-        (constr (γ 𝕄2 s) (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es))) ∎)
+        (constr (γ 𝕄2 s βκ) (mor-vec 𝕄2 αΓ (γ-resp-arg 𝕄2 s βκ) es))) ∎)
 
   mor-vec-≡ {Σ1 = []} {[]} αΓ αβ*Σ [] = refl
   mor-vec-≡ {Σ1 = (Δ1 , κ1) ∷ Σ1} {(Δ2 , κ2) ∷ Σ2} αΓ ((αΔ , βκ) , αβ*Σ) (e ∷ es) =
@@ -204,7 +204,7 @@ record ParLangMor≡ {⅀1 ⅀2 : SecondOrderSignature} {R : CtxKndRel ⅀1 ⅀2
 -- Identity morphism
 id-mor : ∀ ⅀ → ParLangMor ⅀ ⅀ (id-rel ⅀)
 mor-var (id-mor ⅀) refl refl x = var x
-γ (id-mor ⅀) s = s
+γ (id-mor ⅀) s refl = s
 γ-ty-≡ (id-mor ⅀) s refl = refl
 γ-resp-arg (id-mor ⅀) s refl =
   ⋆-pres-refl (
@@ -219,24 +219,24 @@ record IsParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2)
   : Set where
   field
     -- How constructors are mapped under the morphism
-    is-γ : ⅀1 .TyShape → ⅀2 .TyShape
+    is-γ : ∀{κ} (s : ⅀1 .TyShape) → R .β (⅀1 .TyPos s .snd) κ →  ⅀2 .TyShape
     -- γ respects constructor types
     is-γ-ty-≡ : ∀{κ} (s : ⅀1 .TyShape) →
-                R .β (⅀1 .TyPos s .snd) κ →
-                ⅀2 .TyPos (is-γ s) .snd ≡ κ
+                (βκ : R .β (⅀1 .TyPos s .snd) κ) →
+                ⅀2 .TyPos (is-γ s βκ) .snd ≡ κ
     -- γ preserves relatedness of constructor argument types
     is-γ-resp-arg : ∀{κ} (s : ⅀1 .TyShape) →
-                 R .β (⅀1 .TyPos s .snd) κ →
-                 ⋆ (R .α ×ᵣ R .β)
-                  (⅀1 .TyPos s .fst)
-                  (⅀2 .TyPos (is-γ s) .fst)
+                    (βκ : R .β (⅀1 .TyPos s .snd) κ) →
+                    ⋆ (R .α ×ᵣ R .β)
+                      (⅀1 .TyPos s .fst)
+                      (⅀2 .TyPos (is-γ s βκ) .fst)
 
     -- Use γ to replace the constructor
     f-constr : ∀{Γ1 Γ2 κ} (s : ⅀1 .TyShape) (αΓ : R .α Γ1 Γ2) (βκ : R .β (⅀1 .TyPos s .snd) κ)
                (es : TmVec ⅀1 Γ1 (⅀1 .TyPos s .fst)) →
                f αΓ βκ (constr s es) ≡
                subst (Tm ⅀2 Γ2) (is-γ-ty-≡ s βκ) (
-                 constr (is-γ s) (f-vec αΓ (is-γ-resp-arg s βκ) es))
+                 constr (is-γ s βκ) (f-vec αΓ (is-γ-resp-arg s βκ) es))
     -- The morphism acts identically on subterms
     f-vec-nil : ∀{Γ1 Γ2} (αΓ : R .α Γ1 Γ2) → f-vec αΓ (lift tt) [] ≡ []
     f-vec-cons : ∀{Γ1 Γ2 Δ1 Δ2 κ1 κ2 Σ1 Σ2} (αΓ : R .α Γ1 Γ2) (αΔ : R .α Δ1 Δ2)
@@ -263,11 +263,11 @@ record IsParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2)
     f αΓ βκ (constr s es)
       ≡⟨ f-constr s αΓ βκ es ⟩
     subst (Tm ⅀2 Γ2) (is-γ-ty-≡ s βκ)
-      (constr (is-γ s) (f-vec αΓ (is-γ-resp-arg s βκ) es))
-      ≡⟨ cong (λ x → subst (Tm ⅀2 Γ2) (is-γ-ty-≡ s βκ) (constr (is-γ s) x))
+      (constr (is-γ s βκ) (f-vec αΓ (is-γ-resp-arg s βκ) es))
+      ≡⟨ cong (λ x → subst (Tm ⅀2 Γ2) (is-γ-ty-≡ s βκ) (constr (is-γ s βκ) x))
           (f-vec-≗-f-mor-vec αΓ (is-γ-resp-arg s βκ) es) ⟩
     subst (Tm ⅀2 Γ2) (is-γ-ty-≡ s βκ)
-      (constr (is-γ s) (mor-vec f-mor αΓ (is-γ-resp-arg s βκ) es)) ∎
+      (constr (is-γ s βκ) (mor-vec f-mor αΓ (is-γ-resp-arg s βκ) es)) ∎
 
   f-vec-≗-f-mor-vec {Σ1 = []} {[]} αΓ (lift tt) [] = f-vec-nil αΓ
   f-vec-≗-f-mor-vec {Σ1 = (Δ1 , κ1) ∷ Σ1} {(Δ2 , κ2) ∷ Σ2} αΓ ((αΔ , βκ) , αβ*Σ) (e ∷ es) =
@@ -283,28 +283,27 @@ open IsParLangMor public
 _∘ₘ_ : ∀{⅀1 ⅀2 ⅀3 R S} → ParLangMor ⅀2 ⅀3 R → ParLangMor ⅀1 ⅀2 S → ParLangMor ⅀1 ⅀3 (R ∘ᵣₖ S)
 mor-var (𝕄1 ∘ₘ 𝕄2) (Γ2 , α23 , α12) (κ2 , β23 , β12) x =
   mor 𝕄1 α23 β23 (𝕄2 .mor-var α12 β12 x)
-γ (𝕄1 ∘ₘ 𝕄2) = 𝕄1 .γ ∘ 𝕄2 .γ
+γ (_∘ₘ_ {R = R} 𝕄1 𝕄2) {κ3} s1 (κ2 , β23 , β12) =
+  𝕄1 .γ (𝕄2 .γ s1 β12)
+    (subst (flip (R .β) κ3) (sym (𝕄2 .γ-ty-≡ s1 β12)) β23)
 γ-ty-≡ (_∘ₘ_ {R = R} 𝕄1 𝕄2) {κ3} s1 (κ2 , β23 , β12) =
-  𝕄1 .γ-ty-≡ (𝕄2 .γ s1) (
-    subst (flip (R .β) κ3) (sym (𝕄2 .γ-ty-≡ s1 β12)) β23)
-γ-resp-arg (_∘ₘ_ {⅀1} {⅀2} {⅀3} {R} {S} 𝕄1 𝕄2) {κ3} s1 (κ2 , β23 , β12) = let
-  Pos[γ1[s2]]≡κ2 : ⅀2 .TyPos (𝕄2 .γ s1) .snd ≡ κ2
-  Pos[γ1[s2]]≡κ2 = 𝕄2 .γ-ty-≡ s1 β12
+  𝕄1 .γ-ty-≡ (𝕄2 .γ s1 β12)
+    (subst (flip (R .β) κ3) (sym (𝕄2 .γ-ty-≡ s1 β12)) β23)
+γ-resp-arg (_∘ₘ_ {⅀1} {⅀2} {⅀3} {R} {S} 𝕄1 𝕄2) {κ3} s1 (κ2 , β23 , β12) =
+  let
+  eq1 : ⅀2 .TyPos (𝕄2 .γ s1 β12) .snd ≡ κ2
+  eq1 = 𝕄2 .γ-ty-≡ s1 β12
 
-  Pos[γ1[γ2[s1]]]≡κ3 : ⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .snd ≡ κ3
-  Pos[γ1[γ2[s1]]]≡κ3 =
-    𝕄1 .γ-ty-≡ (𝕄2 .γ s1) (
-      subst (flip (R .β) κ3) (sym Pos[γ1[s2]]≡κ2) β23)
+  βs3 : R .β (⅀2 .TyPos (γ 𝕄2 s1 β12) .snd) κ3
+  βs3 = subst (flip (R .β) κ3) (sym (𝕄2 .γ-ty-≡ s1 β12)) β23
 
-  Pos[γ2[s1]]-R-Pos[γ1[γ2[s1]]] : R .β (⅀2 .TyPos (𝕄2 .γ s1) .snd) (⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .snd)
-  Pos[γ2[s1]]-R-Pos[γ1[γ2[s1]]] = subst₂ (R .β) (sym Pos[γ1[s2]]≡κ2) (sym Pos[γ1[γ2[s1]]]≡κ3) β23
+  eq2 : ⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1 β12) βs3) .snd ≡ κ3
+  eq2 = 𝕄1 .γ-ty-≡ (𝕄2 .γ s1 β12) βs3
   in
   ⋆-pres-⇒ (∘ᵣ-×ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
-    {⅀1 .TyPos s1 .fst} {⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .fst}
-    (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) 
-      {⅀1 .TyPos s1 .fst} {⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .fst}
-      (⅀2 .TyPos (γ 𝕄2 s1) .fst ,
-      𝕄1 .γ-resp-arg (𝕄2 .γ s1) Pos[γ2[s1]]-R-Pos[γ1[γ2[s1]]] ,
+    (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
+      (⅀2 .TyPos (γ 𝕄2 s1 β12) .fst ,
+      𝕄1 .γ-resp-arg (𝕄2 .γ s1 β12) βs3 ,
       𝕄2 .γ-resp-arg s1 β12))
 
 -- Composing two morphisms behaves as the composition of morphisms
@@ -318,110 +317,113 @@ mor-var (𝕄1 ∘ₘ 𝕄2) (Γ2 , α23 , α12) (κ2 , β23 , β12) x =
                 (⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
                   (⋆-pres-⇒ (×ᵣ-∘ᵣ-⇒ (R .α) (S .α) (R .β) (S .β)) αβ*Σ) .snd .snd)
                 es)
-is-γ (∘ₘ-is-∘ 𝕄1 𝕄2) = 𝕄1 .γ ∘ 𝕄2 .γ
-is-γ-ty-≡ (∘ₘ-is-∘ {R = R} 𝕄1 𝕄2) {κ3} s1 (κ2 , β23 , β12) =
-  𝕄1 .γ-ty-≡ (𝕄2 .γ s1) (
-    subst (flip (R .β) κ3) (sym (𝕄2 .γ-ty-≡ s1 β12)) β23)
-is-γ-resp-arg (∘ₘ-is-∘ {⅀1} {⅀2} {⅀3} {R} {S} 𝕄1 𝕄2) {κ3} s1 (κ2 , β23 , β12) =
+is-γ (∘ₘ-is-∘ 𝕄1 𝕄2) = (𝕄1 ∘ₘ 𝕄2) .γ
+is-γ-ty-≡ (∘ₘ-is-∘ 𝕄1 𝕄2) {κ3} = (𝕄1 ∘ₘ 𝕄2) .γ-ty-≡
+is-γ-resp-arg (∘ₘ-is-∘ 𝕄1 𝕄2) = (𝕄1 ∘ₘ 𝕄2) .γ-resp-arg
+f-constr (∘ₘ-is-∘ {⅀1} {⅀2} {⅀3} {R} {S} 𝕄1 𝕄2) {Γ1} {Γ3} {κ3} s1 (Γ2 , α23 , α12) (κ2 , β23 , β12) es =
   let
-  Pos[γ1[s2]]≡κ2 : ⅀2 .TyPos (𝕄2 .γ s1) .snd ≡ κ2
-  Pos[γ1[s2]]≡κ2 = 𝕄2 .γ-ty-≡ s1 β12
+  eq1 : ⅀2 .TyPos (𝕄2 .γ s1 β12) .snd ≡ κ2
+  eq1 = 𝕄2 .γ-ty-≡ s1 β12
 
-  Pos[γ1[γ2[s1]]]≡κ3 : ⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .snd ≡ κ3
-  Pos[γ1[γ2[s1]]]≡κ3 =
-    𝕄1 .γ-ty-≡ (𝕄2 .γ s1) (
-      subst (flip (R .β) κ3) (sym Pos[γ1[s2]]≡κ2) β23)
+  βs3 : R .β (⅀2 .TyPos (γ 𝕄2 s1 β12) .snd) κ3
+  βs3 = subst (flip (R .β) κ3) (sym (𝕄2 .γ-ty-≡ s1 β12)) β23
 
-  Pos[γ2[s1]]-R-Pos[γ1[γ2[s1]]] : R .β (⅀2 .TyPos (𝕄2 .γ s1) .snd) (⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .snd)
-  Pos[γ2[s1]]-R-Pos[γ1[γ2[s1]]] = subst₂ (R .β) (sym Pos[γ1[s2]]≡κ2) (sym Pos[γ1[γ2[s1]]]≡κ3) β23
-  in
-  ⋆-pres-⇒ (∘ᵣ-×ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
-    {⅀1 .TyPos s1 .fst} {⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .fst}
-    (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-      {⅀1 .TyPos s1 .fst} {⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1)) .fst}
-      (⅀2 .TyPos (γ 𝕄2 s1) .fst ,
-      𝕄1 .γ-resp-arg (𝕄2 .γ s1) Pos[γ2[s1]]-R-Pos[γ1[γ2[s1]]] ,
-      𝕄2 .γ-resp-arg s1 β12))
-f-constr (∘ₘ-is-∘ {⅀1} {⅀2} {⅀3} {R} {S} 𝕄1 𝕄2) {Γ1} {Γ3} {κ3} s (Γ2 , α23 , α12) (κ2 , β23 , βs2) es
-  with 𝕄2 .γ-ty-≡ s βs2 | inspect (𝕄2 .γ-ty-≡ s) βs2
-... | refl | eq1 with 𝕄1 .γ-ty-≡ (𝕄2 .γ s) β23 | inspect (𝕄1 .γ-ty-≡ (𝕄2 .γ s)) β23
-... | refl | eq2 =
-  let
-  αβ*s2 : (⋆ (R .α ×ᵣ R .β) ∘ᵣ ⋆ (S .α ×ᵣ S .β))
-          (⅀1 .TyPos s .fst)
-          (⅀3 .TyPos (γ 𝕄1 (𝕄2 .γ s)) .fst)
-  αβ*s2 =
+  eq2 : ⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1 β12) βs3) .snd ≡ κ3
+  eq2 = 𝕄1 .γ-ty-≡ (𝕄2 .γ s1 β12) βs3
+
+  β-ty : Set
+  β-ty = (⋆ (R .α ×ᵣ R .β) ∘ᵣ ⋆ (S .α ×ᵣ S .β))
+            (⅀1 .TyPos s1 .fst)
+            (⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1 β12) βs3) .fst)
+
+  β-fun : β-ty → β-ty
+  β-fun =
+    ⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) ∘
+    ⋆-pres-⇒ (×ᵣ-∘ᵣ-⇒ (R .α) (S .α) (R .β) (S .β)) ∘
+    ⋆-pres-⇒ (∘ᵣ-×ᵣ-⇒ (R .α) (S .α) (R .β) (S .β)) ∘
+    ∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
+
+  β-fun≗id : β-fun ≗ id
+  β-fun≗id x =
     ⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
       (⋆-pres-⇒ (×ᵣ-∘ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
         (⋆-pres-⇒ (∘ᵣ-×ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
-          (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-            (⅀2 .TyPos (γ 𝕄2 s) .fst ,
-            𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-            𝕄2 .γ-resp-arg s βs2))))
-  αβ*s1 : (⋆ (R .α ×ᵣ R .β) ∘ᵣ ⋆ (S .α ×ᵣ S .β))
-          (⅀1 .TyPos s .fst)
-          (⅀3 .TyPos (γ 𝕄1 (𝕄2 .γ s)) .fst)
-  αβ*s1 =
-    ⅀2 .TyPos (γ 𝕄2 s) .fst ,
-    𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-    𝕄2 .γ-resp-arg s βs2
-  eq : αβ*s2 ≡ αβ*s1
-  eq =
-    αβ*s2
-      ≡⟨ (cong (⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)) $
+          (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) x)))
+      ≡⟨ cong (⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)) $
           ⋆-pres-⇒-∘
             (×ᵣ-∘ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
             (∘ᵣ-×ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
-            (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-              (⅀2 .TyPos (γ 𝕄2 s) .fst ,
-              𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-              𝕄2 .γ-resp-arg s βs2))) ⟩
+            (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) x) ⟩
     ⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
       (⋆-pres-⇒
         (×ᵣ-∘ᵣ-⇒ (R .α) (S .α) (R .β) (S .β) ∘
-          ∘ᵣ-×ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
-          (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-            (⅀2 .TyPos (γ 𝕄2 s) .fst ,
-            𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-            𝕄2 .γ-resp-arg s βs2)))
-      ≡⟨ (cong (⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)) $
-          ⋆-pres-⇒-ext (×ᵣ-∘ᵣ-≅ᵣ-∘ᵣ-×ᵣ (R .α) (S .α) (R .β) (S .β) _ _ .retract)
-          (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-            (⅀2 .TyPos (γ 𝕄2 s) .fst ,
-            𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-            𝕄2 .γ-resp-arg s βs2))) ⟩
+        ∘ᵣ-×ᵣ-⇒ (R .α) (S .α) (R .β) (S .β))
+        (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) x))
+      ≡⟨ cong (⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)) $
+          ⋆-pres-⇒-ext
+            (×ᵣ-∘ᵣ-≅ᵣ-∘ᵣ-×ᵣ (R .α) (S .α) (R .β) (S .β) _ _ .retract)
+            (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) x) ⟩
     ⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
       (⋆-pres-⇒ id
-          (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-            (⅀2 .TyPos (γ 𝕄2 s) .fst ,
-            𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-            𝕄2 .γ-resp-arg s βs2)))
-      ≡⟨ (cong (⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)) $
-            ⋆-pres-⇒-id 
-              (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-              (⅀2 .TyPos (γ 𝕄2 s) .fst ,
-              𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-              𝕄2 .γ-resp-arg s βs2))) ⟩
+        (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) x))
+      ≡⟨ cong (⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)) $
+          ⋆-pres-⇒-id (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) x) ⟩
     ⋆-∘ᵣ-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-      (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β)
-        (⅀2 .TyPos (γ 𝕄2 s) .fst ,
-        𝕄1 .γ-resp-arg (𝕄2 .γ s) β23 ,
-        𝕄2 .γ-resp-arg s βs2))
-      ≡⟨ ∘ᵣ-⋆-≅ᵣ-⋆-∘ᵣ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) _ _ .section αβ*s1 ⟩
-    αβ*s1 ∎
-  in
-  constr (γ 𝕄1 (γ 𝕄2 s))
-    (mor-vec 𝕄1 α23 (αβ*s1 .snd .fst)
-      (mor-vec 𝕄2 α12 (αβ*s1 .snd .snd) es))
-    ≡⟨ cong (λ x → constr (γ 𝕄1 (γ 𝕄2 s))
-        (mor-vec 𝕄1 α23 (x .snd .fst)
-          (mor-vec 𝕄2 α12 (x .snd .snd) es)))
-        (sym eq) ⟩
-  constr (γ 𝕄1 (γ 𝕄2 s))
-    (mor-vec 𝕄1 α23 (αβ*s2 .snd .fst)
-      (mor-vec 𝕄2 α12 (αβ*s2 .snd .snd) es)) ∎
+      (∘ᵣ-⋆-⇒ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) x)
+      ≡⟨ ∘ᵣ-⋆-≅ᵣ-⋆-∘ᵣ (R .α ×ᵣ R .β) (S .α ×ᵣ S .β) _ _ .section x ⟩
+    x ∎
+
+  αβ*s : (⋆ (R .α ×ᵣ R .β) ∘ᵣ ⋆ (S .α ×ᵣ S .β))
+            (⅀1 .TyPos s1 .fst)
+            (⅀3 .TyPos (𝕄1 .γ (𝕄2 .γ s1 β12) βs3) .fst)
+  αβ*s =
+    ⅀2 .TyPos (γ 𝕄2 s1 β12) .fst ,
+    𝕄1 .γ-resp-arg (𝕄2 .γ s1 β12) βs3 ,
+    𝕄2 .γ-resp-arg s1 β12
+  in erase-inj ⅀3 $ 
+  erase ⅀3
+    (mor 𝕄1 α23 β23
+      (subst (Tm ⅀2 Γ2) (γ-ty-≡ 𝕄2 s1 β12)
+        (constr (γ 𝕄2 s1 β12) (mor-vec 𝕄2 α12 (γ-resp-arg 𝕄2 s1 β12) es))))
+    ≡⟨ erase-mor-≡ 𝕄1 α23 β23
+        (subst (Tm ⅀2 Γ2) (γ-ty-≡ 𝕄2 s1 β12)
+          (constr (γ 𝕄2 s1 β12) (mor-vec 𝕄2 α12 (γ-resp-arg 𝕄2 s1 β12) es))) ⟩
+  erase-mor 𝕄1 α23 β23
+    (subst (Tm ⅀2 Γ2) (γ-ty-≡ 𝕄2 s1 β12)
+      (constr (γ 𝕄2 s1 β12) (mor-vec 𝕄2 α12 (γ-resp-arg 𝕄2 s1 β12) es)))
+    ≡⟨ erase-mor-substTy-≡ 𝕄1 α23 β23 (γ-ty-≡ 𝕄2 s1 β12) (sym (γ-ty-≡ 𝕄2 s1 β12))
+        (constr (γ 𝕄2 s1 β12) (mor-vec 𝕄2 α12 (γ-resp-arg 𝕄2 s1 β12) es)) ⟩
+  constr (γ 𝕄1 (γ 𝕄2 s1 β12) βs3)
+    (erase-mor-vec 𝕄1 α23
+      (γ-resp-arg 𝕄1 (γ 𝕄2 s1 β12) βs3)
+      (mor-vec 𝕄2 α12 (γ-resp-arg 𝕄2 s1 β12) es))
+    ≡⟨ cong (λ x → constr (γ 𝕄1 (γ 𝕄2 s1 β12) βs3)
+        (erase-mor-vec 𝕄1 α23
+          (x .snd .fst)
+          (mor-vec 𝕄2 α12 (x .snd .snd) es))) $
+        sym $ β-fun≗id αβ*s ⟩
+  constr (γ 𝕄1 (γ 𝕄2 s1 β12) βs3)
+    (erase-mor-vec 𝕄1 α23
+      (β-fun αβ*s .snd .fst)
+      (mor-vec 𝕄2 α12 (β-fun αβ*s .snd .snd) es))
+    ≡⟨ sym $ cong (constr (γ 𝕄1 (γ 𝕄2 s1 β12) βs3)) $
+        erase-mor-vec-≡ 𝕄1 α23 (β-fun αβ*s .snd .fst)
+          (mor-vec 𝕄2 α12 (β-fun αβ*s .snd .snd) es) ⟩
+  constr (γ 𝕄1 (γ 𝕄2 s1 β12) βs3)
+    (eraseVec ⅀3
+      (mor-vec 𝕄1 α23 (β-fun αβ*s .snd .fst)
+        (mor-vec 𝕄2 α12 (β-fun αβ*s .snd .snd) es)))
+    ≡⟨ substTy-erase ⅀3 (𝕄1 .γ-ty-≡ (𝕄2 .γ s1 β12) βs3) 
+        (constr (γ 𝕄1 (γ 𝕄2 s1 β12) βs3)
+          (mor-vec 𝕄1 α23 (β-fun αβ*s .snd .fst)
+            (mor-vec 𝕄2 α12 (β-fun αβ*s .snd .snd) es))) ⟩
+  erase ⅀3
+    (subst (Tm ⅀3 Γ3) (𝕄1 .γ-ty-≡ (𝕄2 .γ s1 β12) βs3)
+      (constr (γ 𝕄1 (γ 𝕄2 s1 β12) βs3)
+        (mor-vec 𝕄1 α23 (β-fun αβ*s .snd .fst)
+          (mor-vec 𝕄2 α12 (β-fun αβ*s .snd .snd) es)))) ∎
 f-vec-nil (∘ₘ-is-∘ 𝕄1 𝕄2) αΓ = refl
-f-vec-cons (∘ₘ-is-∘ 𝕄1 𝕄2) αΓ αΔ βκ αβ*Σ e es = cong₂ _∷_ refl refl
+f-vec-cons (∘ₘ-is-∘ 𝕄1 𝕄2) αΓ αΔ βκ αβ*Σ e es = refl
 
 -- The morphism of the composition is equivalent to the composition of the morphisms
 ∘ₘ≗∘ : ∀{⅀1 ⅀2 ⅀3 R S} (𝕄1 : ParLangMor ⅀2 ⅀3 R) (𝕄2 : ParLangMor ⅀1 ⅀2 S)

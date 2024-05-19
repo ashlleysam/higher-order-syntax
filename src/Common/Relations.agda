@@ -23,8 +23,10 @@ _≅ᵣ_ : ∀{a b ℓ1 ℓ2} {A : Set a} {B : Set b} →
         REL A B ℓ1 → REL A B ℓ2 → Set (a ⊔ b ⊔ ℓ1 ⊔ ℓ2)
 R ≅ᵣ S = ∀ x y → R x y ≅ S x y
 
--- Extend a relation to related lists of matching length
--- Generalization of the Kleene star to a set of pairs
+{-
+Extend a relation to related lists of matching length
+Generalization of the Kleene star to a set of pairs
+-}
 ⋆ : ∀{a b ℓ} {A : Set a} {B : Set b} →
     REL A B ℓ →
     REL (List A) (List B) ℓ
@@ -32,6 +34,21 @@ R ≅ᵣ S = ∀ x y → R x y ≅ S x y
 ⋆ {ℓ = ℓ} R [] (x ∷ ys) = Lift ℓ ⊥
 ⋆ {ℓ = ℓ} R (x ∷ xs) [] = Lift ℓ ⊥
 ⋆ R (x ∷ xs) (y ∷ ys) = R x y × ⋆ R xs ys
+
+-- The relation on lists respects mapping
+⋆-map-⇒ : ∀{a b ℓ} {A : Set a} {B : Set b} →
+          {R : REL A B ℓ} (f : A → B) (xs : List A) →
+          (∀ x → R x (f x)) →
+          ⋆ R xs (map f xs)
+⋆-map-⇒ f [] p = lift tt
+⋆-map-⇒ f (x ∷ xs) p = p x , ⋆-map-⇒ f xs p
+
+⋆-map-⇐ : ∀{a b ℓ} {A : Set a} {B : Set b} →
+          {R : REL A B ℓ} (f : B → A) (xs : List B) →
+          (∀ y → R (f y) y) →
+          ⋆ R (map f xs) xs
+⋆-map-⇐ f [] p = lift tt
+⋆-map-⇐ f (y ∷ ys) p = p y , ⋆-map-⇐ f ys p
 
 -- The relation on lists preserves reflexivity
 ⋆-pres-refl : ∀{a ℓ} {A : Set a} {R : Rel A ℓ} →
@@ -200,5 +217,5 @@ module _
   ∘ᵣ-⋆-⇒ : ⋆ R ∘ᵣ ⋆ S ⇒ ⋆ (R ∘ᵣ S)
   ∘ᵣ-⋆-⇒ {xs} {zs} = ∘ᵣ-⋆-≅ᵣ-⋆-∘ᵣ xs zs .forward
 
-  ⋆-∘ᵣ-⇒ : ⋆ (R ∘ᵣ S) ⇒ ⋆ R ∘ᵣ ⋆ S
+  ⋆-∘ᵣ-⇒ : ⋆ (R ∘ᵣ S) ⇒ ⋆ R ∘ᵣ ⋆ S 
   ⋆-∘ᵣ-⇒ {xs} {zs} = ∘ᵣ-⋆-≅ᵣ-⋆-∘ᵣ xs zs .backward
