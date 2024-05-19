@@ -548,9 +548,9 @@ substCtx-erase : ∀{Γ1 Γ2 t}
 substCtx-erase refl x = refl
 
 substTy-erase : ∀{Γ t1 t2}
-                   (p : t1 ≡ t2)
-                   (x : Tm Γ t1) →
-                  erase x ≡ erase (subst (Tm Γ) p x)
+                (p : t1 ≡ t2)
+                (x : Tm Γ t1) →
+                erase x ≡ erase (subst (Tm Γ) p x)
 substTy-erase refl x = refl
 
 subst₂-eraseVec : ∀{Γ1 Γ2 Σ1 Σ2}
