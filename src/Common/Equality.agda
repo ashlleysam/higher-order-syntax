@@ -5,6 +5,8 @@ open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd)
+open import Data.Empty
+open import Data.Unit
 open import Function
 
 open ≡-Reasoning
@@ -31,6 +33,23 @@ J P d x refl = d
 isProp : ∀{a} → Set a → Set a
 isProp A = (x y : A) → x ≡ y
 
+≡-isProp : ∀{a} {A : Set a} {x y : A} → isProp (x ≡ y)
+≡-isProp = UIP
+
+⊥-isProp : isProp ⊥
+⊥-isProp ()
+
+⊤-isProp : isProp ⊤
+⊤-isProp tt tt = refl
+
+×-isProp : ∀{a b} {A : Set a} {B : Set b} →
+           isProp A → isProp B → isProp (A × B)
+×-isProp A-prop B-prop (x1 , y1) (x2 , y2) = cong₂ _,_ (A-prop x1 x2) (B-prop y1 y2)           
+
+Lift-isProp : ∀{a ℓ} {A : Set a} → isProp A → isProp (Lift ℓ A)
+Lift-isProp A-prop (lift x) (lift y) = cong lift (A-prop x y)
+
+-- Transport across equal types
 transport : ∀{a} {A B : Set a} → A ≡ B → A → B
 transport refl x = x
 

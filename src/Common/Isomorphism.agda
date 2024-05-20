@@ -101,6 +101,14 @@ backward swap-≡ p = sym p
 section swap-≡ refl = refl
 retract swap-≡ refl = refl
 
+-- Lifting types preserves isomorphisms
+Lift-≅ : ∀{a b ℓ1 ℓ2} {A : Set a} {B : Set b} →
+         A ≅ B → Lift ℓ1 A ≅ Lift ℓ2 B
+forward (Lift-≅ p) (lift x) = lift (p .forward x)
+backward (Lift-≅ p) (lift y) = lift (p .backward y)
+section (Lift-≅ p) (lift x) = cong lift (p .section x)
+retract (Lift-≅ p) (lift y) = cong lift (p .retract y)         
+
 -- Taking products respects isomorphisms
 ×-≅ : ∀{a1 a2 b1 b2} {A1 : Set a1} {A2 : Set a2}
       {B1 : Set b1} {B2 : Set b2} →
@@ -211,7 +219,7 @@ retract (Σ-≅ p) (x , y) = cong (x ,_) (p x .retract y)
             (Pg : ∀ y → P (g y)) →
             (∀ y → f (g y) (Pg y) ≡ y) →
             (Σ[ x ∈ A ] (P x)) ≅ B
-forward (Σ-Prop-≅ P-isProp f g r Pg s) (x , Px) = f x Px 
+forward (Σ-Prop-≅ P-isProp f g r Pg s) (x , Px) = f x Px  
 backward (Σ-Prop-≅ P-isProp f g r Pg s) y = g y , Pg y
 section (Σ-Prop-≅ P-isProp f g r Pg s) (x , Px) = Σ-≡-→-≡-Σ (r x Px) (P-isProp x _ _)
 retract (Σ-Prop-≅ P-isProp f g r Pg s) y = s y            

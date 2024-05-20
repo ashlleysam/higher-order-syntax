@@ -7,15 +7,26 @@ open import Data.Sum  renaming (inj₁ to inl; inj₂ to inr) hiding (map)
 open import Data.List
 open import Data.List.Properties
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
+open import Data.Product.Properties
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
 open import Function
 
 open ≡-Reasoning
 
+open import Common.Equality
 open import Common.Isomorphism
 
 module Common.Relations where
+
+-- R is a propositional relation if each R x y is a proposition
+isPropRel : ∀{a b ℓ} {A : Set a} {B : Set b} →
+            REL A B ℓ → Set (a ⊔ b ⊔ ℓ)
+isPropRel R = ∀ x y → isProp (R x y)
+
+-- Equality is a propositional relation
+≡-isPropRel : ∀{a} {A : Set a} → isPropRel {A = A} _≡_
+≡-isPropRel x y = UIP
 
 -- Isomorphisms between relations (a stronger condition than logical equivalence)
 infix 4 _≅ᵣ_
@@ -34,6 +45,23 @@ Generalization of the Kleene star to a set of pairs
 ⋆ {ℓ = ℓ} R [] (x ∷ ys) = Lift ℓ ⊥
 ⋆ {ℓ = ℓ} R (x ∷ xs) [] = Lift ℓ ⊥
 ⋆ R (x ∷ xs) (y ∷ ys) = R x y × ⋆ R xs ys
+
+-- ⋆ preserves propositionality
+⋆-isPropRel : ∀{a b ℓ} {A : Set a} {B : Set b} {R : REL A B ℓ} →
+              isPropRel R → isPropRel (⋆ R)
+⋆-isPropRel R-prop [] [] = Lift-isProp ⊤-isProp
+⋆-isPropRel R-prop [] (y ∷ ys) = Lift-isProp ⊥-isProp
+⋆-isPropRel R-prop (x ∷ xs) [] = Lift-isProp ⊥-isProp
+⋆-isPropRel R-prop (x ∷ xs) (y ∷ ys) = ×-isProp (R-prop x y) (⋆-isPropRel R-prop xs ys)
+
+-- ⋆ preserves isomorphism
+⋆-pres-≅ᵣ : ∀{a b ℓ1 ℓ2} {A : Set a} {B : Set b} →
+            {R : REL A B ℓ1} {S : REL A B ℓ2} →
+            R ≅ᵣ S → ⋆ R ≅ᵣ ⋆ S
+⋆-pres-≅ᵣ p [] [] = Lift-≅ ≅-refl
+⋆-pres-≅ᵣ p [] (y ∷ ys) = Lift-≅ ≅-refl
+⋆-pres-≅ᵣ p (x ∷ xs) [] = Lift-≅ ≅-refl
+⋆-pres-≅ᵣ p (x ∷ xs) (y ∷ ys) = ×-≅ (p x y) (⋆-pres-≅ᵣ p xs ys)
 
 -- The relation on lists respects mapping
 ⋆-map-⇒ : ∀{a b ℓ} {A : Set a} {B : Set b} →
@@ -105,6 +133,25 @@ Generalization of the Kleene star to a set of pairs
     refl
     (⋆-pres-⇒-∘ f g xs-⋆R-ys)
 
+
+-- ⋆ applied to equality is isomorphic to equality
+module _ {a} {A : Set a} where
+  ⋆≡-≅-≡-forward : (xs ys : List A) → ⋆ _≡_ xs ys → xs ≡ ys
+  ⋆≡-≅-≡-forward [] [] (lift tt) = refl
+  ⋆≡-≅-≡-forward (x ∷ xs) (y ∷ ys) (p , q) = cong₂ _∷_ p (⋆≡-≅-≡-forward xs ys q)
+
+  ⋆≡-≅-≡-refl : (xs : List A) → ⋆ _≡_ xs xs
+  ⋆≡-≅-≡-refl xs = ⋆-pres-refl refl
+
+  ⋆≡-≅-≡-backward : (xs ys : List A) → xs ≡ ys → ⋆ _≡_ xs ys
+  ⋆≡-≅-≡-backward xs ys p = subst (⋆ _≡_ xs) p (⋆≡-≅-≡-refl xs)
+
+  ⋆≡-≅-≡ : ⋆ (_≡_ {A = A}) ≅ᵣ _≡_ {A = List A}
+  forward (⋆≡-≅-≡ xs ys) = ⋆≡-≅-≡-forward xs ys
+  backward (⋆≡-≅-≡ xs ys) = ⋆≡-≅-≡-backward xs ys
+  section (⋆≡-≅-≡ xs ys) p = ⋆-isPropRel ≡-isPropRel _ _ _ p
+  retract (⋆≡-≅-≡ xs ys) p = UIP _ p
+
 -- Combine two relations into a relation on a pairs
 infixr 5 _×ᵣ_
 _×ᵣ_ : ∀{a1 a2 b1 b2 ℓ1 ℓ2}
@@ -114,6 +161,24 @@ _×ᵣ_ : ∀{a1 a2 b1 b2 ℓ1 ℓ2}
         REL B1 B2 ℓ2 →
         REL (A1 × B1) (A2 × B2) (ℓ1 ⊔ ℓ2)
 (R ×ᵣ S) (x1 , y1) (x2 , y2) = R x1 x2 × S y1 y2        
+
+-- ×ᵣ preserves propositionality
+×ᵣ-isPropRel : ∀{a1 a2 b1 b2 ℓ1 ℓ2}
+                {A1 : Set a1} {A2 : Set a2}
+                {B1 : Set b1} {B2 : Set b2} →
+                {R : REL A1 A2 ℓ1}
+                {S : REL B1 B2 ℓ2} →
+                isPropRel R → isPropRel S → isPropRel (R ×ᵣ S)
+×ᵣ-isPropRel R-prop S-prop (x1 , y1) (x2 , y2) = ×-isProp (R-prop x1 x2) (S-prop y1 y2)
+
+-- xᵣ preserves isomorphism
+×ᵣ-pres-≅ᵣ : ∀{a1 a2 b1 b2 ℓ1 ℓ2 ℓ3 ℓ4}
+              {A1 : Set a1} {A2 : Set a2}
+              {B1 : Set b1} {B2 : Set b2} →
+              {R1 : REL A1 A2 ℓ1} {R2 : REL A1 A2 ℓ2} →
+              {S1 : REL B1 B2 ℓ3} {S2 : REL B1 B2 ℓ4} →
+              R1 ≅ᵣ R2 → S1 ≅ᵣ S2 → (R1 ×ᵣ S1) ≅ᵣ (R2 ×ᵣ S2)
+×ᵣ-pres-≅ᵣ p q (x1 , y1) (x2 , y2) = ×-≅ (p x1 x2) (q y1 y2)
 
 -- The relation on pairs preserves reflexivity
 ×ᵣ-pres-refl : ∀{a b ℓ1 ℓ2} {A : Set a} {B : Set b}
@@ -215,7 +280,15 @@ module _
     ((Σ[ y ∈ B ] (R y z × S x y)) × ⋆ (R ∘ᵣ S) xs zs) ≅∎
 
   ∘ᵣ-⋆-⇒ : ⋆ R ∘ᵣ ⋆ S ⇒ ⋆ (R ∘ᵣ S)
-  ∘ᵣ-⋆-⇒ {xs} {zs} = ∘ᵣ-⋆-≅ᵣ-⋆-∘ᵣ xs zs .forward
+  ∘ᵣ-⋆-⇒ {xs} {zs} = ∘ᵣ-⋆-≅ᵣ-⋆-∘ᵣ xs zs .forward 
 
-  ⋆-∘ᵣ-⇒ : ⋆ (R ∘ᵣ S) ⇒ ⋆ R ∘ᵣ ⋆ S 
+  ⋆-∘ᵣ-⇒ : ⋆ (R ∘ᵣ S) ⇒ ⋆ R ∘ᵣ ⋆ S  
   ⋆-∘ᵣ-⇒ {xs} {zs} = ∘ᵣ-⋆-≅ᵣ-⋆-∘ᵣ xs zs .backward
+
+-- ×ᵣ applied to equality is isomorphic to equality
+×ᵣ≡-≅-≡ : ∀{a b} {A : Set a} {B : Set b} →
+          (_≡_ {A = A}) ×ᵣ (_≡_ {A = B}) ≅ᵣ _≡_
+forward (×ᵣ≡-≅-≡ (x1 , y1) (x2 , y2)) (p , q) = cong₂ _,_ p q
+backward (×ᵣ≡-≅-≡ (x1 , y1) (x2 , y2)) p = ,-injective p 
+section (×ᵣ≡-≅-≡ (x1 , y1) (.x1 , .y1)) (refl , refl) = refl
+retract (×ᵣ≡-≅-≡ (x1 , y1) (.x1 , .y1)) refl = refl 
