@@ -668,3 +668,80 @@ f-vec-cons (∘ₘ-is-∘ 𝕄1 𝕄2) αΓ δΔ βκ δβ*Σ e es = refl
        mor 𝕄1 (p .snd .fst) (q .snd .fst) (mor 𝕄2 (p .snd .snd) (q .snd .snd) e)
        ≡ mor (𝕄1 ∘ₘ 𝕄2) p q e
 ∘ₘ≗∘ 𝕄1 𝕄2 p q e = f-≗-f-mor (∘ₘ-is-∘ 𝕄1 𝕄2) p q e
+
+-- Renaming morphism
+ren-rel : ∀{⅀} → CtxKndRel ⅀ ⅀
+α (ren-rel {⅀}) = Ren ⅀
+β (ren-rel {⅀}) = _≡_
+δ (ren-rel {⅀}) Δ1 Δ2 = Δ1 ≡ Δ2
+δ-++-α (ren-rel {⅀}) {Δ1} {.Δ1} {Γ1} {Γ2} refl ξ = Keep* ⅀ ξ Δ1
+
+ren-mor : ∀{⅀} → ParLangMor ⅀ ⅀ ren-rel
+mor-var (ren-mor {⅀}) ξ p x = subst (Tm ⅀ _) p (var (renVar ⅀ ξ x))
+γ (ren-mor {⅀}) s p = s
+γ-ty-≡ (ren-mor {⅀}) s p = p
+γ-resp-arg (ren-mor {⅀}) s p =
+  ⋆-pres-refl (
+    ×ᵣ-pres-refl {A = List (⅀ .Knd)} {⅀ .Knd} {ren-rel {⅀} .δ} {ren-rel {⅀} .β}
+      refl
+      refl)
+
+ren-is-ren : ∀{⅀} → IsParLangMor ⅀ ⅀ ren-rel
+                    (λ {Γ1} {Γ2} {κ1} {κ2} ξ p e → subst (Tm ⅀ Γ2) p (ren ⅀ ξ e))
+                    -- (to-vec-fun ren-rel (λ {Γ1} {Γ2} {κ1} {κ2} ξ p e → subst (Tm ⅀ Γ2) p (ren ⅀ ξ e)))
+                    (λ {Γ1} {Γ2} {Σ1} {Σ2} ξ p es →
+                      subst (TmVec ⅀ Γ2)
+                        (⋆≡-≅-≡ _ _ .forward (⋆-pres-≅ᵣ {S = _≡_} ×ᵣ≡-≅-≡ _ _ .forward p))
+                        (renVec ⅀ ξ es))
+is-γ (ren-is-ren {⅀}) = ren-mor {⅀} .γ
+is-γ-ty-≡ (ren-is-ren {⅀}) = ren-mor {⅀} .γ-ty-≡
+is-γ-resp-arg (ren-is-ren {⅀}) = ren-mor {⅀} .γ-resp-arg
+f-constr (ren-is-ren {⅀}) {Γ1} {Γ2} s ξ refl es = cong (constr s) $ eraseVec-inj ⅀ $
+  substTy-eraseVec ⅀ 
+    (⋆≡-≅-≡-forward (⅀ .TyPos s .fst) (⅀ .TyPos s .fst)
+      (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ (⅀ .TyPos s .fst) (⅀ .TyPos s .fst) .forward
+      (⋆-pres-refl (×ᵣ-pres-refl {A = List (⅀ .Knd)} {⅀ .Knd} {ren-rel {⅀} .δ} {ren-rel {⅀} .β} refl refl))))
+    (renVec ⅀ ξ es)
+f-vec-nil (ren-is-ren {⅀}) ξ = refl
+f-vec-cons (ren-is-ren {⅀}) {Γ1} {Γ2} {Δ1} {.Δ1} {κ1} {.κ1} {Σ1} {Σ2} ξ refl refl p e es = eraseVec-inj ⅀ $
+  eraseVec ⅀
+    (subst (TmVec ⅀ Γ2)
+      (cong₂ _∷_ refl (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p)))
+      (ren ⅀ (Keep* ⅀ ξ Δ1) e ∷ renVec ⅀ ξ es))
+    ≡⟨ (sym $ substTy-eraseVec ⅀ 
+        (cong₂ _∷_ refl (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p)))
+        (ren ⅀ (Keep* ⅀ ξ Δ1) e ∷ renVec ⅀ ξ es)) ⟩
+  (erase ⅀ (ren ⅀ (Keep* ⅀ ξ Δ1) e) , length Δ1) ∷ eraseVec ⅀ (renVec ⅀ ξ es)
+    ≡⟨ cong ((erase ⅀ (ren ⅀ (Keep* ⅀ ξ Δ1) e) , length Δ1) ∷_) $ 
+        substTy-eraseVec ⅀ (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p)) $
+          renVec ⅀ ξ es ⟩
+  (erase ⅀ (ren ⅀ (Keep* ⅀ ξ Δ1) e) , length Δ1) ∷
+    eraseVec ⅀
+    (subst (TmVec ⅀ Γ2)
+      (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p))
+      (renVec ⅀ ξ es)) ∎
+
+ren-mor-≡-f-mor-ren-is-ren : ∀{⅀} → ParLangMor≡ {⅀} ren-mor (f-mor ren-is-ren)
+γ1≗γ2 (ren-mor-≡-f-mor-ren-is-ren {⅀}) s p = refl
+γ-resp-arg-≡ (ren-mor-≡-f-mor-ren-is-ren {⅀}) s refl refl = refl
+var1≗var2 (ren-mor-≡-f-mor-ren-is-ren {⅀}) ξ p x = refl
+
+ren-mor≗ren : ∀{⅀ Γ1 Γ2 κ1 κ2} (ξ : Ren ⅀ Γ1 Γ2) (p : κ1 ≡ κ2) (e : Tm ⅀ Γ1 κ1) →
+              mor ren-mor ξ p e ≡ subst (Tm ⅀ Γ2) p (ren ⅀ ξ e)
+ren-mor≗ren {⅀} {Γ1} {Γ2} {κ1} {κ2} ξ p e =
+  mor ren-mor ξ p e
+    ≡⟨ mor-≡ ren-mor-≡-f-mor-ren-is-ren ξ p e ⟩
+  mor (f-mor ren-is-ren) ξ p e
+    ≡⟨ (sym $ f-≗-f-mor ren-is-ren ξ p e) ⟩
+  subst (Tm ⅀ Γ2) p (ren ⅀ ξ e) ∎
+
+erase-ren-mor≗ren : ∀{⅀ Γ1 Γ2 κ1 κ2} (ξ : Ren ⅀ Γ1 Γ2) (p : κ1 ≡ κ2) (e : Tm ⅀ Γ1 κ1) →
+                    erase-mor ren-mor ξ p e ≡ erase ⅀ (ren ⅀ ξ e)
+erase-ren-mor≗ren {⅀} {Γ1} {Γ2} {κ1} {κ2} ξ p e =
+  erase-mor ren-mor ξ p e
+    ≡⟨ (sym $ erase-mor-≡ ren-mor ξ p e) ⟩
+  erase ⅀ (mor ren-mor ξ p e)
+    ≡⟨ (cong (erase ⅀) $ ren-mor≗ren ξ p e) ⟩
+  erase ⅀ (subst (Tm ⅀ Γ2) p (ren ⅀ ξ e))
+    ≡⟨ (sym $ substTy-erase ⅀ p (ren ⅀ ξ e)) ⟩
+  erase ⅀ (ren ⅀ ξ e) ∎
