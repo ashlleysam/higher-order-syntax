@@ -688,7 +688,6 @@ mor-var (ren-mor {⅀}) ξ p x = subst (Tm ⅀ _) p (var (renVar ⅀ ξ x))
 
 ren-is-ren : ∀{⅀} → IsParLangMor ⅀ ⅀ ren-rel
                     (λ {Γ1} {Γ2} {κ1} {κ2} ξ p e → subst (Tm ⅀ Γ2) p (ren ⅀ ξ e))
-                    -- (to-vec-fun ren-rel (λ {Γ1} {Γ2} {κ1} {κ2} ξ p e → subst (Tm ⅀ Γ2) p (ren ⅀ ξ e)))
                     (λ {Γ1} {Γ2} {Σ1} {Σ2} ξ p es →
                       subst (TmVec ⅀ Γ2)
                         (⋆≡-≅-≡ _ _ .forward (⋆-pres-≅ᵣ {S = _≡_} ×ᵣ≡-≅-≡ _ _ .forward p))
@@ -745,3 +744,79 @@ erase-ren-mor≗ren {⅀} {Γ1} {Γ2} {κ1} {κ2} ξ p e =
   erase ⅀ (subst (Tm ⅀ Γ2) p (ren ⅀ ξ e))
     ≡⟨ (sym $ substTy-erase ⅀ p (ren ⅀ ξ e)) ⟩
   erase ⅀ (ren ⅀ ξ e) ∎
+
+-- Substitution morphism
+sub-rel : ∀{⅀} → CtxKndRel ⅀ ⅀
+α (sub-rel {⅀}) = Sub ⅀
+β (sub-rel {⅀}) = _≡_
+δ (sub-rel {⅀}) Δ1 Δ2 = Δ1 ≡ Δ2
+δ-++-α (sub-rel {⅀}) {Δ1} {.Δ1} {Γ1} {Γ2} refl ξ = KeepSub* ⅀ ξ Δ1
+
+sub-mor : ∀{⅀} → ParLangMor ⅀ ⅀ sub-rel
+mor-var (sub-mor {⅀}) σ p x = subst (Tm ⅀ _) p (subVar ⅀ σ x)
+γ (sub-mor {⅀}) s p = s
+γ-ty-≡ (sub-mor {⅀}) s p = p
+γ-resp-arg (sub-mor {⅀}) s p =
+  ⋆-pres-refl (
+    ×ᵣ-pres-refl {A = List (⅀ .Knd)} {⅀ .Knd} {sub-rel {⅀} .δ} {sub-rel {⅀} .β}
+      refl
+      refl)
+
+sub-is-sub : ∀{⅀} → IsParLangMor ⅀ ⅀ sub-rel
+                    (λ {Γ1} {Γ2} {κ1} {κ2} σ p e → subst (Tm ⅀ Γ2) p (sub ⅀ σ e))
+                    (λ {Γ1} {Γ2} {Σ1} {Σ2} σ p es →
+                      subst (TmVec ⅀ Γ2)
+                        (⋆≡-≅-≡ _ _ .forward (⋆-pres-≅ᵣ {S = _≡_} ×ᵣ≡-≅-≡ _ _ .forward p))
+                        (subVec ⅀ σ es))
+is-γ (sub-is-sub {⅀}) = sub-mor {⅀} .γ
+is-γ-ty-≡ (sub-is-sub {⅀}) = sub-mor {⅀} .γ-ty-≡
+is-γ-resp-arg (sub-is-sub {⅀}) = sub-mor {⅀} .γ-resp-arg
+f-constr (sub-is-sub {⅀}) {Γ1} {Γ2} s σ refl es = cong (constr s) $ eraseVec-inj ⅀ $
+  substTy-eraseVec ⅀ 
+    (⋆≡-≅-≡-forward (⅀ .TyPos s .fst) (⅀ .TyPos s .fst)
+      (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ (⅀ .TyPos s .fst) (⅀ .TyPos s .fst) .forward
+      (⋆-pres-refl (×ᵣ-pres-refl {A = List (⅀ .Knd)} {⅀ .Knd} {sub-rel {⅀} .δ} {sub-rel {⅀} .β} refl refl))))
+    (subVec ⅀ σ es)
+f-vec-nil (sub-is-sub {⅀}) σ = refl
+f-vec-cons (sub-is-sub {⅀}) {Γ1} {Γ2} {Δ1} {.Δ1} {κ1} {.κ1} {Σ1} {Σ2} σ refl refl p e es = eraseVec-inj ⅀ $
+  eraseVec ⅀
+    (subst (TmVec ⅀ Γ2)
+      (cong₂ _∷_ refl (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p)))
+      (sub ⅀ (KeepSub* ⅀ σ Δ1) e ∷ subVec ⅀ σ es))
+    ≡⟨ (sym $ substTy-eraseVec ⅀ 
+        (cong₂ _∷_ refl (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p)))
+        (sub ⅀ (KeepSub* ⅀ σ Δ1) e ∷ subVec ⅀ σ es)) ⟩
+  (erase ⅀ (sub ⅀ (KeepSub* ⅀ σ Δ1) e) , length Δ1) ∷ eraseVec ⅀ (subVec ⅀ σ es)
+    ≡⟨ cong ((erase ⅀ (sub ⅀ (KeepSub* ⅀ σ Δ1) e) , length Δ1) ∷_) $ 
+        substTy-eraseVec ⅀ (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p)) $
+          subVec ⅀ σ es ⟩
+  (erase ⅀ (sub ⅀ (KeepSub* ⅀ σ Δ1) e) , length Δ1) ∷
+    eraseVec ⅀
+    (subst (TmVec ⅀ Γ2)
+      (⋆≡-≅-≡-forward Σ1 Σ2 (⋆-pres-≅ᵣ ×ᵣ≡-≅-≡ Σ1 Σ2 .forward p))
+      (subVec ⅀ σ es)) ∎
+
+sub-mor-≡-f-mor-sub-is-sub : ∀{⅀} → ParLangMor≡ {⅀} sub-mor (f-mor sub-is-sub)
+γ1≗γ2 (sub-mor-≡-f-mor-sub-is-sub {⅀}) s p = refl
+γ-resp-arg-≡ (sub-mor-≡-f-mor-sub-is-sub {⅀}) s refl refl = refl
+var1≗var2 (sub-mor-≡-f-mor-sub-is-sub {⅀}) σ p x = refl
+
+sub-mor≗sub : ∀{⅀ Γ1 Γ2 κ1 κ2} (σ : Sub ⅀ Γ1 Γ2) (p : κ1 ≡ κ2) (e : Tm ⅀ Γ1 κ1) →
+              mor sub-mor σ p e ≡ subst (Tm ⅀ Γ2) p (sub ⅀ σ e)
+sub-mor≗sub {⅀} {Γ1} {Γ2} {κ1} {κ2} σ p e =
+  mor sub-mor σ p e
+    ≡⟨ mor-≡ sub-mor-≡-f-mor-sub-is-sub σ p e ⟩
+  mor (f-mor sub-is-sub) σ p e
+    ≡⟨ (sym $ f-≗-f-mor sub-is-sub σ p e) ⟩
+  subst (Tm ⅀ Γ2) p (sub ⅀ σ e) ∎
+
+erase-sub-mor≗sub : ∀{⅀ Γ1 Γ2 κ1 κ2} (σ : Sub ⅀ Γ1 Γ2) (p : κ1 ≡ κ2) (e : Tm ⅀ Γ1 κ1) →
+                    erase-mor sub-mor σ p e ≡ erase ⅀ (sub ⅀ σ e)
+erase-sub-mor≗sub {⅀} {Γ1} {Γ2} {κ1} {κ2} σ p e =
+  erase-mor sub-mor σ p e
+    ≡⟨ (sym $ erase-mor-≡ sub-mor σ p e) ⟩
+  erase ⅀ (mor sub-mor σ p e)
+    ≡⟨ (cong (erase ⅀) $ sub-mor≗sub σ p e) ⟩
+  erase ⅀ (subst (Tm ⅀ Γ2) p (sub ⅀ σ e))
+    ≡⟨ (sym $ substTy-erase ⅀ p (sub ⅀ σ e)) ⟩
+  erase ⅀ (sub ⅀ σ e) ∎
