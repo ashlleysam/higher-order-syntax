@@ -34,13 +34,13 @@ record CtxKndRel (⅀1 ⅀2 : SecondOrderSignature) : Set₁ where
 
 open CtxKndRel public
 
-record CtxKndRel≡ {⅀1 ⅀2} (R S : CtxKndRel ⅀1 ⅀2) : Set₁ where
+record CtxKndRel⇒ {⅀1 ⅀2} (R S : CtxKndRel ⅀1 ⅀2) : Set₁ where
   field
-    α≅ : R .α ≅ᵣ S .α
-    β≅ : R .β ≅ᵣ S .β
-    δ≅ : R .δ ≅ᵣ S .δ
+    α⇒ : R .α ⇒ S .α
+    β⇒ : R .β ⇒ S .β
+    δ⇒ : R .δ ⇒ S .δ
 
-open CtxKndRel≡ public
+open CtxKndRel⇒ public
 
 -- Identity relation
 id-rel : ∀{⅀} → CtxKndRel ⅀ ⅀
@@ -50,6 +50,7 @@ id-rel : ∀{⅀} → CtxKndRel ⅀ ⅀
 δ-++-α id-rel p q = cong₂ _++_ p q
 
 -- Composition of context and kind relations
+infixr 9 _∘ᵣₖ_
 _∘ᵣₖ_ : ∀{⅀1 ⅀2 ⅀3} → CtxKndRel ⅀2 ⅀3 → CtxKndRel ⅀1 ⅀2 → CtxKndRel ⅀1 ⅀3
 α (R ∘ᵣₖ S) = R .α ∘ᵣ S .α
 β (R ∘ᵣₖ S) = R .β ∘ᵣ S .β
@@ -219,43 +220,41 @@ record ParLangMor≡ {⅀1 ⅀2 : SecondOrderSignature} {R : CtxKndRel ⅀1 ⅀2
 open ParLangMor≡ public
 
 record ParLangMorPath {⅀1 ⅀2 : SecondOrderSignature} {R S : CtxKndRel ⅀1 ⅀2}
-  (R≅S : CtxKndRel≡ R S)
+  (R⇒S : CtxKndRel⇒ R S)
   (𝕄1 : ParLangMor ⅀1 ⅀2 R) (𝕄2 : ParLangMor ⅀1 ⅀2 S) : Set where
   field
     -- The modified constructors will be identical
     γ1≗γ2-Path : ∀{Σ} (s : ⅀1 .TyShape) (βκ : R .β (⅀1 .TyPos s .snd) Σ) →
-                 γ 𝕄1 s βκ ≡ γ 𝕄2 s (R≅S .β≅ _ _ .forward βκ)
+                 γ 𝕄1 s βκ ≡ γ 𝕄2 s (R⇒S .β⇒ βκ)
     -- The proofs that constructors preserve relatedness are equivalent
     γ-resp-arg-≡-Path : ∀{Σ} (s : ⅀1 .TyShape) (βκ : R .β (⅀1 .TyPos s .snd) Σ)
-                        (p : ⅀2 .TyPos (γ 𝕄1 s βκ) .fst ≡ ⅀2 .TyPos (γ 𝕄2 s (R≅S .β≅ _ _ .forward βκ)) .fst) →
+                        (p : ⅀2 .TyPos (γ 𝕄1 s βκ) .fst ≡ ⅀2 .TyPos (γ 𝕄2 s (R⇒S .β⇒ βκ)) .fst) →
                         subst (⋆ (S .δ ×ᵣ S .β) (⅀1 .TyPos s .fst)) p
                           (⋆-pres-⇒
                             (×ᵣ-pres-⇒
-                              (λ {x} {y} → R≅S .δ≅ x y .forward)
-                              (λ {x} {y} → R≅S .β≅ x y .forward))
+                              (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+                              (λ {x} {y} → R⇒S .β⇒ {x} {y}))
                             (γ-resp-arg 𝕄1 s βκ))
-                        ≡ γ-resp-arg 𝕄2 s (R≅S .β≅ _ _ .forward βκ)
+                        ≡ γ-resp-arg 𝕄2 s (R⇒S .β⇒ βκ)
 
     -- The morphisms are identical on variables
     var1≗var2-Path : ∀{Γ1 Γ2 κ1 κ2} (αΓ : R .α Γ1 Γ2) (βκ : R .β κ1 κ2) (x : Var ⅀1 Γ1 κ1) →
                      mor-var 𝕄1 αΓ βκ x ≡
-                     mor-var 𝕄2 (R≅S .α≅ _ _ .forward αΓ) (R≅S .β≅ _ _ .forward βκ) x
+                     mor-var 𝕄2 (R⇒S .α⇒ αΓ) (R⇒S .β⇒ βκ) x
 
     δ-++-α-Path : ∀{Δ1 Δ2 Γ1 Γ2} (δΔ : R .δ Δ1 Δ2) (αΓ : R .α Γ1 Γ2) →
-      R≅S .α≅ (Δ1 ++ Γ1) (Δ2 ++ Γ2) .forward (R .δ-++-α δΔ αΓ) ≡
-      S .δ-++-α
-        (R≅S .δ≅ Δ1 Δ2 .forward δΔ)
-        (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+      R⇒S .α⇒ (R .δ-++-α δΔ αΓ) ≡
+      S .δ-++-α (R⇒S .δ⇒ δΔ) (R⇒S .α⇒ αΓ)
 
   -- The morphisms are identical on all terms
   mor-≡-Path : ∀{Γ1 Γ2 κ1 κ2} (αΓ : R .α Γ1 Γ2) (βκ : R .β κ1 κ2) (e : Tm ⅀1 Γ1 κ1) →
               mor 𝕄1 αΓ βκ e ≡
-              mor 𝕄2 (R≅S .α≅ _ _ .forward αΓ) (R≅S .β≅ _ _ .forward βκ) e
+              mor 𝕄2 (R⇒S .α⇒ αΓ) (R⇒S .β⇒ βκ) e
   mor-vec-≡-Path : ∀{Γ1 Γ2 Σ1 Σ2} (αΓ : R .α Γ1 Γ2) (δβ*Σ : ⋆ (R .δ ×ᵣ R .β) Σ1 Σ2) (es : TmVec ⅀1 Γ1 Σ1) →
                    mor-vec 𝕄1 αΓ δβ*Σ es ≡
                    mor-vec 𝕄2
-                    (R≅S .α≅ _ _ .forward αΓ)
-                    (⋆-pres-⇒ (×ᵣ-pres-⇒ (λ {x} {y} → R≅S .δ≅ x y .forward) λ {x} {y} → R≅S .β≅ x y .forward) δβ*Σ)
+                    (R⇒S .α⇒ αΓ)
+                    (⋆-pres-⇒ (×ᵣ-pres-⇒ (λ {x} {y} → R⇒S .δ⇒ {x} {y}) λ {x} {y} → R⇒S .β⇒ {x} {y}) δβ*Σ)
                     es
 
   mor-≡-Path αΓ βκ (var x) = var1≗var2-Path αΓ βκ x
@@ -271,92 +270,92 @@ record ParLangMorPath {⅀1 ⅀2 : SecondOrderSignature} {R S : CtxKndRel ⅀1 �
           mor-vec-≡-Path αΓ (γ-resp-arg 𝕄1 s βκ) es ⟩
     constr (γ 𝕄1 s βκ)
       (eraseVec ⅀2
-        (mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+        (mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
           (⋆-pres-⇒
             (×ᵣ-pres-⇒
-              (λ {x} {y} → R≅S .δ≅ x y .forward)
-              (λ {x} {y} → R≅S .β≅ x y .forward))
+              (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+              (λ {x} {y} → R⇒S .β⇒ {x} {y}))
             (γ-resp-arg 𝕄1 s βκ))
           es))
       ≡⟨ cong (λ x → constr x (eraseVec ⅀2
-          (mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+          (mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
             (⋆-pres-⇒
               (×ᵣ-pres-⇒
-                (λ {x} {y} → R≅S .δ≅ x y .forward)
-                (λ {x} {y} → R≅S .β≅ x y .forward))
+                (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+                (λ {x} {y} → R⇒S .β⇒ {x} {y}))
               (γ-resp-arg 𝕄1 s βκ))
             es))) 
           (γ1≗γ2-Path s βκ) ⟩
-    constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
+    constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
       (eraseVec ⅀2
-        (mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+        (mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
           (⋆-pres-⇒
             (×ᵣ-pres-⇒
-              (λ {x} {y} → R≅S .δ≅ x y .forward)
-              (λ {x} {y} → R≅S .β≅ x y .forward))
+              (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+              (λ {x} {y} → R⇒S .β⇒ {x} {y}))
             (γ-resp-arg 𝕄1 s βκ))
           es))
-      ≡⟨ (cong (constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))) $
-          erase-mor-vec-≡ 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+      ≡⟨ (cong (constr (γ 𝕄2 s (R⇒S .β⇒ βκ))) $
+          erase-mor-vec-≡ 𝕄2 (R⇒S .α⇒ αΓ)
           (⋆-pres-⇒
             (×ᵣ-pres-⇒
-              (λ {x} {y} → R≅S .δ≅ x y .forward)
-              (λ {x} {y} → R≅S .β≅ x y .forward))
+              (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+              (λ {x} {y} → R⇒S .β⇒ {x} {y}))
             (γ-resp-arg 𝕄1 s βκ))
           es) ⟩
-    constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-      (erase-mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+    constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
+      (erase-mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
         (⋆-pres-⇒
           (×ᵣ-pres-⇒
-            (λ {x} {y} → R≅S .δ≅ x y .forward)
-            (λ {x} {y} → R≅S .β≅ x y .forward))
+            (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+            (λ {x} {y} → R⇒S .β⇒ {x} {y}))
           (γ-resp-arg 𝕄1 s βκ))
         es)
-      ≡⟨ (cong (constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))) $
-          sym $ erase-mor-vec-subst-≡ 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+      ≡⟨ (cong (constr (γ 𝕄2 s (R⇒S .β⇒ βκ))) $
+          sym $ erase-mor-vec-subst-≡ 𝕄2 (R⇒S .α⇒ αΓ)
             (⋆-pres-⇒
             (×ᵣ-pres-⇒
-              (λ {x} {y} → R≅S .δ≅ x y .forward)
-              (λ {x} {y} → R≅S .β≅ x y .forward))
+              (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+              (λ {x} {y} → R⇒S .β⇒ {x} {y}))
             (γ-resp-arg 𝕄1 s βκ))
             (cong (λ x → ⅀2 .TyPos x .fst) (γ1≗γ2-Path s βκ))
             es) ⟩
-    constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-      (erase-mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
+    constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
+      (erase-mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
         (subst (⋆ (S .δ ×ᵣ S .β) (⅀1 .TyPos s .fst))
           (cong (λ x → ⅀2 .TyPos x .fst) (γ1≗γ2-Path s βκ))
           (⋆-pres-⇒
             (×ᵣ-pres-⇒
-              (λ {x} {y} → R≅S .δ≅ x y .forward)
-              (λ {x} {y} → R≅S .β≅ x y .forward))
+              (λ {x} {y} → R⇒S .δ⇒ {x} {y})
+              (λ {x} {y} → R⇒S .β⇒ {x} {y}))
             (γ-resp-arg 𝕄1 s βκ)))
         es)
-      ≡⟨ (cong (λ x → constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-            (erase-mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ) x es)) $
+      ≡⟨ (cong (λ x → constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
+            (erase-mor-vec 𝕄2 (R⇒S .α⇒ αΓ) x es)) $
           γ-resp-arg-≡-Path s βκ (cong (λ x → ⅀2 .TyPos x .fst) (γ1≗γ2-Path s βκ))) ⟩
-    constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-      (erase-mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
-        (γ-resp-arg 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
+    constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
+      (erase-mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
+        (γ-resp-arg 𝕄2 s (R⇒S .β⇒ βκ))
         es)
-      ≡⟨ (cong (constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))) $
+      ≡⟨ (cong (constr (γ 𝕄2 s (R⇒S .β⇒ βκ))) $
           sym $ erase-mor-vec-≡ 𝕄2 
-            (R≅S .α≅ Γ1 Γ2 .forward αΓ)
-            (γ-resp-arg 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
+            (R⇒S .α⇒ αΓ)
+            (γ-resp-arg 𝕄2 s (R⇒S .β⇒ βκ))
             es) ⟩
-    constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
+    constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
       (eraseVec ⅀2
         (mor-vec 𝕄2
-          (R≅S .α≅ Γ1 Γ2 .forward αΓ)
-          (γ-resp-arg 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ)) es))
-      ≡⟨ substTy-erase ⅀2 (γ-ty-≡ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-          (constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-            (mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
-              (γ-resp-arg 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ)) es)) ⟩
+          (R⇒S .α⇒ αΓ)
+          (γ-resp-arg 𝕄2 s (R⇒S .β⇒ βκ)) es))
+      ≡⟨ substTy-erase ⅀2 (γ-ty-≡ 𝕄2 s (R⇒S .β⇒ βκ))
+          (constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
+            (mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
+              (γ-resp-arg 𝕄2 s (R⇒S .β⇒ βκ)) es)) ⟩
     erase ⅀2
-      (subst (Tm ⅀2 Γ2) (γ-ty-≡ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-      (constr (γ 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ))
-        (mor-vec 𝕄2 (R≅S .α≅ Γ1 Γ2 .forward αΓ)
-        (γ-resp-arg 𝕄2 s (R≅S .β≅ (⅀1 .TyPos s .snd) κ2 .forward βκ)) es))) ∎
+      (subst (Tm ⅀2 Γ2) (γ-ty-≡ 𝕄2 s (R⇒S .β⇒ βκ))
+      (constr (γ 𝕄2 s (R⇒S .β⇒ βκ))
+        (mor-vec 𝕄2 (R⇒S .α⇒ αΓ)
+        (γ-resp-arg 𝕄2 s (R⇒S .β⇒ βκ)) es))) ∎
 
   mor-vec-≡-Path {Σ1 = []} {[]}  αΓ δβ*Σ [] = refl
   mor-vec-≡-Path {Γ1} {Γ2} {Σ1 = (Δ1 , κ1) ∷ Σ1} {(Δ2 , κ2) ∷ Σ2} αΓ ((δΔ , βκ) , δβ*Σ) (e ∷ es) =
@@ -364,15 +363,15 @@ record ParLangMorPath {⅀1 ⅀2 : SecondOrderSignature} {R S : CtxKndRel ⅀1 �
       (mor 𝕄1 (R .δ-++-α δΔ αΓ) βκ e
         ≡⟨ mor-≡-Path (R .δ-++-α δΔ αΓ) βκ e ⟩
       mor 𝕄2
-        (R≅S .α≅ (Δ1 ++ Γ1) (Δ2 ++ Γ2) .forward (R .δ-++-α δΔ αΓ))
-        (R≅S .β≅ κ1 κ2 .forward βκ)
+        (R⇒S .α⇒ (R .δ-++-α δΔ αΓ))
+        (R⇒S .β⇒ βκ)
         e
-        ≡⟨ cong (λ x → mor 𝕄2 x (R≅S .β≅ κ1 κ2 .forward βκ) e) (δ-++-α-Path δΔ αΓ) ⟩
+        ≡⟨ cong (λ x → mor 𝕄2 x (R⇒S .β⇒ βκ) e) (δ-++-α-Path δΔ αΓ) ⟩
       mor 𝕄2
         (S .δ-++-α
-          (R≅S .δ≅ Δ1 Δ2 .forward δΔ)
-          (R≅S .α≅ Γ1 Γ2 .forward αΓ))
-        (R≅S .β≅ κ1 κ2 .forward βκ)
+          (R⇒S .δ⇒ δΔ)
+          (R⇒S .α⇒ αΓ))
+        (R⇒S .β⇒ βκ)
         e ∎)
       (mor-vec-≡-Path αΓ δβ*Σ es)
 
@@ -454,6 +453,7 @@ record IsParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2)
 open IsParLangMor public
 
 -- Composition of morphisms
+infixr 9 _∘ₘ_
 _∘ₘ_ : ∀{⅀1 ⅀2 ⅀3 R S} → ParLangMor ⅀2 ⅀3 R → ParLangMor ⅀1 ⅀2 S → ParLangMor ⅀1 ⅀3 (R ∘ᵣₖ S)
 mor-var (𝕄1 ∘ₘ 𝕄2) (Γ2 , α23 , α12) (κ2 , β23 , β12) x =
   mor 𝕄1 α23 β23 (𝕄2 .mor-var α12 β12 x)
@@ -493,7 +493,7 @@ mor-var (id-mor {⅀}) p q x = var (subst₂ (Var ⅀) p q x)
 
 id-is-id : ∀{⅀} → IsParLangMor ⅀ ⅀ id-rel
                     (λ p q e → subst₂ (Tm ⅀) p q e)
-                    (λ p q es → subst₂ (TmVec ⅀) p (⋆≡-≅-≡ _ _ .forward (⋆-pres-≅ᵣ {S = _≡_} ×ᵣ≡-≅-≡ _ _ .forward q)) es)
+                    λ p q es → subst₂ (TmVec ⅀) p (⋆≡-≅-≡ _ _ .forward (⋆-pres-≅ᵣ {S = _≡_} ×ᵣ≡-≅-≡ _ _ .forward q)) es
 is-γ (id-is-id {⅀}) = id-mor {⅀} .γ
 is-γ-ty-≡ (id-is-id {⅀}) = id-mor {⅀} .γ-ty-≡
 is-γ-resp-arg id-is-id = id-mor .γ-resp-arg
@@ -744,6 +744,19 @@ erase-ren-mor≗ren {⅀} {Γ1} {Γ2} {κ1} {κ2} ξ p e =
   erase ⅀ (subst (Tm ⅀ Γ2) p (ren ⅀ ξ e))
     ≡⟨ (sym $ substTy-erase ⅀ p (ren ⅀ ξ e)) ⟩
   erase ⅀ (ren ⅀ ξ e) ∎
+
+-- Constant renaming morphism
+-- const-ren-rel : ∀{⅀ Γ1 Γ2} → Ren ⅀ Γ1 Γ2 → CtxKndRel ⅀ ⅀
+-- α (const-ren-rel {⅀} {Γ1} {Γ2} ξ) Γ3 Γ4 = Σ[ Δ ∈ _ ] (Γ3 ≡ Δ ++ Γ1 × Γ4 ≡ Δ ++ Γ2)
+-- β (const-ren-rel {⅀} {Γ1} {Γ2} ξ) κ1 κ2 = κ1 ≡ κ2
+-- δ (const-ren-rel {⅀} {Γ1} {Γ2} ξ) Δ1 Δ2 = Δ1 ≡ Δ2
+-- δ-++-α (const-ren-rel {⅀} {Γ1} {Γ2} ξ) {Δ1} {Δ2} {Γ3} {Γ4} p (Δ , q1 , q2) = 
+--   Δ1 ++ Δ ,
+--   cong (Δ1 ++_) q1 ∙ (sym $ ++-assoc Δ1 Δ Γ1) ,
+--   cong (_++ Γ4) (sym p) ∙ cong (Δ1 ++_) q2 ∙ (sym $ ++-assoc Δ1 Δ Γ2)
+
+-- const-ren-mor : ∀{⅀ Γ1 Γ2} (ξ : Ren ⅀ Γ1 Γ2) → ParLangMor ⅀ ⅀ (const-ren-rel ξ)
+-- const-ren-mor ξ = {!   !}
 
 -- Substitution morphism
 sub-rel : ∀{⅀} → CtxKndRel ⅀ ⅀

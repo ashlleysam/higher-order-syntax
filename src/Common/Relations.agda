@@ -64,19 +64,26 @@ Generalization of the Kleene star to a set of pairs
 ⋆-pres-≅ᵣ p (x ∷ xs) (y ∷ ys) = ×-≅ (p x y) (⋆-pres-≅ᵣ p xs ys)
 
 -- The relation on lists respects mapping
-⋆-map-⇒ : ∀{a b ℓ} {A : Set a} {B : Set b} →
+⋆-mapᵣ : ∀{a b ℓ} {A : Set a} {B : Set b} →
           {R : REL A B ℓ} (f : A → B) (xs : List A) →
           (∀ x → R x (f x)) →
           ⋆ R xs (map f xs)
-⋆-map-⇒ f [] p = lift tt
-⋆-map-⇒ f (x ∷ xs) p = p x , ⋆-map-⇒ f xs p
+⋆-mapᵣ f [] p = lift tt
+⋆-mapᵣ f (x ∷ xs) p = p x , ⋆-mapᵣ f xs p
 
-⋆-map-⇐ : ∀{a b ℓ} {A : Set a} {B : Set b} →
+⋆-mapₗ : ∀{a b ℓ} {A : Set a} {B : Set b} →
           {R : REL A B ℓ} (f : B → A) (xs : List B) →
           (∀ y → R (f y) y) →
           ⋆ R (map f xs) xs
-⋆-map-⇐ f [] p = lift tt
-⋆-map-⇐ f (y ∷ ys) p = p y , ⋆-map-⇐ f ys p
+⋆-mapₗ f [] p = lift tt
+⋆-mapₗ f (y ∷ ys) p = p y , ⋆-mapₗ f ys p
+
+⋆-map₂ : ∀{a b c ℓ} {A : Set a} {B : Set b} {C : Set c} →
+        {R : REL B C ℓ} (f : A → B) (g : A → C) (xs : List A) →
+        (∀ x → R (f x) (g x)) →
+        ⋆ R (map f xs) (map g xs)
+⋆-map₂ f g [] p = lift tt
+⋆-map₂ f g (x ∷ xs) p = p x , ⋆-map₂ f g xs p
 
 -- The relation on lists preserves reflexivity
 ⋆-pres-refl : ∀{a ℓ} {A : Set a} {R : Rel A ℓ} →
