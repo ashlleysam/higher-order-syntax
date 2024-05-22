@@ -34,6 +34,14 @@ record CtxKndRel (⅀1 ⅀2 : SecondOrderSignature) : Set₁ where
 
 open CtxKndRel public
 
+record CtxKndRel≅ {⅀1 ⅀2} (R S : CtxKndRel ⅀1 ⅀2) : Set₁ where
+  field
+    α≅ : R .α ≅ᵣ S .α
+    β≅ : R .β ≅ᵣ S .β
+    δ≅ : R .δ ≅ᵣ S .δ
+
+open CtxKndRel≅ public
+
 record CtxKndRel⇒ {⅀1 ⅀2} (R S : CtxKndRel ⅀1 ⅀2) : Set₁ where
   field
     α⇒ : R .α ⇒ S .α
@@ -41,6 +49,12 @@ record CtxKndRel⇒ {⅀1 ⅀2} (R S : CtxKndRel ⅀1 ⅀2) : Set₁ where
     δ⇒ : R .δ ⇒ S .δ
 
 open CtxKndRel⇒ public
+
+CtxKndRel-≅-to-⇒ : ∀{⅀1 ⅀2} {R S : CtxKndRel ⅀1 ⅀2} →
+                    CtxKndRel≅ R S → CtxKndRel⇒ R S
+α⇒ (CtxKndRel-≅-to-⇒ p) = p .α≅ _ _ .forward
+β⇒ (CtxKndRel-≅-to-⇒ p) = p .β≅ _ _ .forward
+δ⇒ (CtxKndRel-≅-to-⇒ p) = p .δ≅ _ _ .forward
 
 -- Identity relation
 id-rel : ∀{⅀} → CtxKndRel ⅀ ⅀
@@ -150,7 +164,7 @@ record ParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2) :
 open ParLangMor public
 
 {-
-To prove two language morphisms over isomorphic context and kind
+To prove two language morphisms the same context and kind
 relation are equivalent, it suffices to prove that they are
 equivalent on variables and constructors with the
 explicit isomorphism between the relations being applied
@@ -452,6 +466,46 @@ record IsParLangMor (⅀1 ⅀2 : SecondOrderSignature) (R : CtxKndRel ⅀1 ⅀2)
 
 open IsParLangMor public
 
+-- Restrict a morphism to a sub-relation
+restr-mor : ∀{⅀1 ⅀2} {R S : CtxKndRel ⅀1 ⅀2} →
+            (𝕄 : ParLangMor ⅀1 ⅀2 S) →
+            (R⇒S : CtxKndRel⇒ R S) →
+            (∀{κ} (s : ⅀1 .TyShape) →
+                 (βκ : R .β (⅀1 .TyPos s .snd) κ) →
+                 ⋆ (R .δ ×ᵣ R .β)
+                  (⅀1 .TyPos s .fst)
+                  (⅀2 .TyPos (𝕄 .γ s (R⇒S .β⇒ βκ)) .fst)) →
+            ParLangMor ⅀1 ⅀2 R
+mor-var (restr-mor 𝕄 R⇒S γ-resp-arg') αΓ βκ x = 𝕄 .mor-var (R⇒S .α⇒ αΓ) (R⇒S .β⇒ βκ) x
+γ (restr-mor 𝕄 R⇒S γ-resp-arg') s βκ = 𝕄 .γ s (R⇒S .β⇒ βκ)
+γ-ty-≡ (restr-mor 𝕄 R⇒S γ-resp-arg') s βκ = 𝕄 .γ-ty-≡ s (R⇒S .β⇒ βκ)
+γ-resp-arg (restr-mor 𝕄 R⇒S γ-resp-arg') s βκ = γ-resp-arg' s βκ
+
+-- Restricting the morphism doesn't change anything
+restr-mor-path : ∀{⅀1 ⅀2} {R S : CtxKndRel ⅀1 ⅀2} →
+                (𝕄 : ParLangMor ⅀1 ⅀2 S) →
+                (R⇒S : CtxKndRel⇒ R S) →
+                (γ-resp-arg' : ∀{κ} (s : ⅀1 .TyShape) →
+                    (βκ : R .β (⅀1 .TyPos s .snd) κ) →
+                    ⋆ (R .δ ×ᵣ R .β)
+                      (⅀1 .TyPos s .fst)
+                      (⅀2 .TyPos (𝕄 .γ s (R⇒S .β⇒ βκ)) .fst)) →
+                (∀{Σ} (s : ⅀1 .TyShape) (βκ : R .β (⅀1 .TyPos s .snd) Σ)
+                (p
+                : ⅀2 .TyPos (𝕄 .γ s (R⇒S .β⇒ βκ)) .fst ≡
+                  ⅀2 .TyPos (γ 𝕄 s (R⇒S .β⇒ βκ)) .fst) →
+                subst (⋆ (S .δ ×ᵣ S .β) (⅀1 .TyPos s .fst)) p
+                (⋆-pres-⇒ (×ᵣ-pres-⇒ {R1 = R .δ} {S .δ} {R .β} {S .β} (R⇒S .δ⇒) (R⇒S .β⇒)) (γ-resp-arg' s βκ))
+                ≡ γ-resp-arg 𝕄 s (R⇒S .β⇒ βκ)) →
+                (∀{Δ1 Δ2 Γ1 Γ2} (δΔ : R .δ Δ1 Δ2) (αΓ : R .α Γ1 Γ2) →
+                  R⇒S .α⇒ (R .δ-++-α δΔ αΓ) ≡
+                  S .δ-++-α (R⇒S .δ⇒ δΔ) (R⇒S .α⇒ αΓ)) →
+                ParLangMorPath R⇒S (restr-mor 𝕄 R⇒S γ-resp-arg') 𝕄
+γ1≗γ2-Path (restr-mor-path 𝕄 R⇒S γ-resp-arg' γ-resp-arg-≡-Path' δ-++-α-Path') s βκ = refl
+γ-resp-arg-≡-Path (restr-mor-path 𝕄 R⇒S γ-resp-arg' γ-resp-arg-≡-Path' δ-++-α-Path') = γ-resp-arg-≡-Path'
+var1≗var2-Path (restr-mor-path 𝕄 R⇒S γ-resp-arg' γ-resp-arg-≡-Path' δ-++-α-Path') αΓ βκ x = refl
+δ-++-α-Path (restr-mor-path 𝕄 R⇒S γ-resp-arg' γ-resp-arg-≡-Path' δ-++-α-Path') = δ-++-α-Path'
+
 -- Composition of morphisms
 infixr 9 _∘ₘ_
 _∘ₘ_ : ∀{⅀1 ⅀2 ⅀3 R S} → ParLangMor ⅀2 ⅀3 R → ParLangMor ⅀1 ⅀2 S → ParLangMor ⅀1 ⅀3 (R ∘ᵣₖ S)
@@ -744,19 +798,6 @@ erase-ren-mor≗ren {⅀} {Γ1} {Γ2} {κ1} {κ2} ξ p e =
   erase ⅀ (subst (Tm ⅀ Γ2) p (ren ⅀ ξ e))
     ≡⟨ (sym $ substTy-erase ⅀ p (ren ⅀ ξ e)) ⟩
   erase ⅀ (ren ⅀ ξ e) ∎
-
--- Constant renaming morphism
--- const-ren-rel : ∀{⅀ Γ1 Γ2} → Ren ⅀ Γ1 Γ2 → CtxKndRel ⅀ ⅀
--- α (const-ren-rel {⅀} {Γ1} {Γ2} ξ) Γ3 Γ4 = Σ[ Δ ∈ _ ] (Γ3 ≡ Δ ++ Γ1 × Γ4 ≡ Δ ++ Γ2)
--- β (const-ren-rel {⅀} {Γ1} {Γ2} ξ) κ1 κ2 = κ1 ≡ κ2
--- δ (const-ren-rel {⅀} {Γ1} {Γ2} ξ) Δ1 Δ2 = Δ1 ≡ Δ2
--- δ-++-α (const-ren-rel {⅀} {Γ1} {Γ2} ξ) {Δ1} {Δ2} {Γ3} {Γ4} p (Δ , q1 , q2) = 
---   Δ1 ++ Δ ,
---   cong (Δ1 ++_) q1 ∙ (sym $ ++-assoc Δ1 Δ Γ1) ,
---   cong (_++ Γ4) (sym p) ∙ cong (Δ1 ++_) q2 ∙ (sym $ ++-assoc Δ1 Δ Γ2)
-
--- const-ren-mor : ∀{⅀ Γ1 Γ2} (ξ : Ren ⅀ Γ1 Γ2) → ParLangMor ⅀ ⅀ (const-ren-rel ξ)
--- const-ren-mor ξ = {!   !}
 
 -- Substitution morphism
 sub-rel : ∀{⅀} → CtxKndRel ⅀ ⅀

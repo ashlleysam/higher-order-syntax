@@ -46,6 +46,13 @@ isProp A = (x y : A) → x ≡ y
            isProp A → isProp B → isProp (A × B)
 ×-isProp A-prop B-prop (x1 , y1) (x2 , y2) = cong₂ _,_ (A-prop x1 x2) (B-prop y1 y2)           
 
+Σ-isProp : ∀{a b} {A : Set a} {B : A → Set b} →
+            (∀ x1 x2 → B x1 → B x2 → x1 ≡ x2) →
+            ((x : A) → isProp (B x)) →
+            isProp (Σ[ x ∈ A ] (B x))
+Σ-isProp fst-uniq snd-prop (x1 , y1) (x2 , y2) with fst-uniq x1 x2 y1 y2
+Σ-isProp fst-uniq snd-prop (x1 , y1) (x1 , y2) | refl = cong (x1 ,_) (snd-prop x1 y1 y2)
+
 Lift-isProp : ∀{a ℓ} {A : Set a} → isProp A → isProp (Lift ℓ A)
 Lift-isProp A-prop (lift x) (lift y) = cong lift (A-prop x y)
 
@@ -120,3 +127,7 @@ module FunExt {a b} {A : Set a} {B : Set b} where
   syntax step-≗⁻ x y≡z y≡x = x ≗⁻⟨ y≡x ⟩ y≡z
 
 open FunExt public
+
+≡⇒≗ : ∀{a b} {A : Set a} {B : Set b} {f g : A → B} →
+        f ≡ g → f ≗ g
+≡⇒≗ p x = cong (λ y → y x) p

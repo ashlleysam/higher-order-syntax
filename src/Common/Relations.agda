@@ -3,7 +3,7 @@
 open import Level
 open import Data.Unit
 open import Data.Empty
-open import Data.Sum  renaming (inj₁ to inl; inj₂ to inr) hiding (map)
+open import Data.Sum renaming (inj₁ to inl; inj₂ to inr) hiding (map)
 open import Data.List
 open import Data.List.Properties
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
@@ -27,6 +27,14 @@ isPropRel R = ∀ x y → isProp (R x y)
 -- Equality is a propositional relation
 ≡-isPropRel : ∀{a} {A : Set a} → isPropRel {A = A} _≡_
 ≡-isPropRel x y = UIP
+
+Σ-isPropRel : ∀{a b c ℓ} {A : Set a} {B : Set b} {C : A → B → Set c}
+              {R : (x : A) (y : B) → C x y → Set ℓ} →
+              (∀ x y z1 z2 → R x y z1 → R x y z2 → z1 ≡ z2) →
+              (∀ x y z → isProp (R x y z)) →
+              isPropRel (λ x y → Σ[ z ∈ C x y ] (R x y z))
+Σ-isPropRel fst-uniq snd-prop x y (z1 , p1) (z2 , p2) with fst-uniq x y z1 z2 p1 p2
+Σ-isPropRel fst-uniq snd-prop x y (z1 , p1) (z1 , p2) | refl = cong (z1 ,_) (snd-prop x y z1 p1 p2)
 
 -- Isomorphisms between relations (a stronger condition than logical equivalence)
 infix 4 _≅ᵣ_
