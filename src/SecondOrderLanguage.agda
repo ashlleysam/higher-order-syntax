@@ -5,7 +5,9 @@ open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
 open import Data.Empty
 open import Data.Nat
 open import Data.Nat.Properties
+open import Data.Fin hiding (_≤_)
 open import Data.List
+open import Data.List.Properties
 open import Data.Unit using (⊤; tt)
 open import Relation.Nullary
 open import Relation.Binary
@@ -47,6 +49,11 @@ data TmVec Γ where
         (e : Tm (Δ ++ Γ) t) →
         (es : TmVec Γ Σ) →
         TmVec Γ ((Δ , t) ∷ Σ)
+
+lookupTmVec : ∀{Γ Σ} → TmVec Γ Σ → (i : Fin (length Σ)) → Tm (lookup Σ i .fst ++ Γ) (lookup Σ i .snd)
+lookupTmVec [] ()
+lookupTmVec (e ∷ es) zero = e
+lookupTmVec (e ∷ es) (suc i) = lookupTmVec es i
 
 ----------------------
 -- BASIC PROPERTIES --
@@ -373,6 +380,10 @@ Keep•◦* ξ σ (t ∷ Δ) =
 ι (Keep ξ) = KeepSub (ι ξ)
 ι (Drop ξ) = DropSub (ι ξ)
 
+ιε* : ∀{Γ} → ι (ε* {Γ}) ≡ ε
+ιε* {[]} = refl
+ιε* {t ∷ Γ} = cong (Drop IdRen •◦_) ιε*
+
 Drop*ι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ → DropSub* (ι ξ) Δ ≡ ι (Drop* ξ Δ)
 Drop*ι ξ [] = refl
 Drop*ι ξ (t ∷ Δ) = cong DropSub (Drop*ι ξ Δ)
@@ -380,7 +391,6 @@ Drop*ι ξ (t ∷ Δ) = cong DropSub (Drop*ι ξ Δ)
 Keep*ι : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) → ∀ Δ → KeepSub* (ι ξ) Δ ≡ ι (Keep* ξ Δ)
 Keep*ι ξ [] = refl
 Keep*ι ξ (t ∷ Δ) = cong KeepSub (Keep*ι ξ Δ)
-
 
 •◦ι : ∀{Γ1 Γ2 Γ3} (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
     ξ1 •◦ ι ξ2 ≡ ι (ξ1 • ξ2)
@@ -514,6 +524,10 @@ _◦•_ : ∀{Γ1 Γ2 Γ3} → Sub Γ2 Γ3 → Ren Γ1 Γ2 → Sub Γ1 Γ3
 σ ◦• ε = ε
 (σ ▸ e) ◦• Keep ξ = (σ ◦• ξ) ▸ e
 (σ ▸ e) ◦• Drop ξ = σ ◦• ξ
+
+◦•ε : ∀{Γ1 Γ2} (σ : Sub Γ1 Γ2) → σ ◦• ε* ≡ ε
+◦•ε ε = refl
+◦•ε (σ ▸ e) = ◦•ε σ
 
 ◦•• : ∀{Γ1 Γ2 Γ3 Γ4} (σ : Sub Γ3 Γ4) (ξ1 : Ren Γ2 Γ3) (ξ2 : Ren Γ1 Γ2) →
       σ ◦• (ξ1 • ξ2) ≡ (σ ◦• ξ1) ◦• ξ2
@@ -787,17 +801,17 @@ subVec◦ {Σ = (Δ , t) ∷ Σ} σ1 σ2 (e ∷ es) =
 -- META-TERMS --
 ----------------
 
-MTyp : Set
-MTyp = Ctx × ⅀ .Knd
+MKnd : Set
+MKnd = Ctx × ⅀ .Knd
 
 MCtx : Set
-MCtx = List MTyp
+MCtx = List MKnd
 
-data MVar : MCtx → MTyp → Set where
+data MVar : MCtx → MKnd → Set where
   MV0 : ∀{Γ t} → MVar (t ∷ Γ) t
   MVS : ∀{Γ s t} (x : MVar Γ t) → MVar (s ∷ Γ) t
 
-data MTm (Γ : MCtx) : MTyp → Set
+data MTm (Γ : MCtx) : MKnd → Set
 data MTmVec (Γ : MCtx) : List (Ctx × (⅀ .Knd)) → Set
 
 data MTm Γ where
@@ -814,7 +828,6 @@ data MTmVec Γ where
         (e : MTm (map (λ x → [] , x) Δ ++ Γ) ([] , t)) →
         (es : MTmVec Γ Σ) →
         MTmVec Γ ((Δ , t) ∷ Σ)
-
 
 tmVec++ : ∀{Σ Γ} (η : TmVec Γ Σ) (Δ : Ctx) → TmVec (Δ ++ Γ) (map (λ x → [] , x) Δ ++ Σ)
 tmVec++ η [] = η
@@ -891,3 +904,17 @@ interpVecSub (_∷_ {Δ} e es) η σ =
       ∙ interpTmSub e (tmVec++ η Δ) (KeepSub* σ Δ) IdSub IdSub (Id◦ (KeepSub* σ Δ) ∙ sym (◦Id (KeepSub* σ Δ))))
     (interpVecSub es η σ)
   
+toMVar : ∀{Γ t} → Var Γ t → MVar (map (λ s → [] , s) Γ) ([] , t)
+toMVar V0 = MV0
+toMVar (VS x) = MVS (toMVar x)
+
+toMTm : ∀{Γ t} → Tm Γ t → MTm (map (λ s → [] , s) Γ) ([] , t)
+toMTmVec : ∀{Γ Σ} → TmVec Γ Σ → MTmVec (map (λ s → [] , s) Γ) Σ
+
+toMTm (var x) = mvar (toMVar x)
+toMTm (constr s es) = mconstr s (toMTmVec es)
+
+toMTmVec [] = []
+toMTmVec {Γ} {(Δ , t) ∷ Σ} (e ∷ es) =
+  subst (flip MTm _) (map-++-commute (λ s → [] , s) Δ Γ) (toMTm e)
+  ∷ toMTmVec es

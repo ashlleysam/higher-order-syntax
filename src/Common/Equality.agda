@@ -7,17 +7,28 @@ open import Relation.Binary.PropositionalEquality
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd)
 open import Data.Empty
 open import Data.Unit
+open import Data.List
 open import Function
 
 open ≡-Reasoning
 
 module Common.Equality where
 
+nil≢cons : ∀{a} {A : Set a} {x : A} {xs : List A} → [] ≢ x ∷ xs
+nil≢cons ()
+
+cons≢nil : ∀{a} {A : Set a} {x : A} {xs : List A} → x ∷ xs ≢ []
+cons≢nil ()
+
 -- Cubical syntax for transitivity
 infixr 30 _∙_
 _∙_ : ∀{a} {A : Set a} {x y z : A} →
       x ≡ y → y ≡ z → x ≡ z
 p ∙ q = trans p q
+
+•-idᵣ : ∀{a} {A : Set a} {x y : A}
+        (p : x ≡ y) → p ∙ refl ≡ p
+•-idᵣ refl = refl        
 
 -- Explicit uniqueness of identity proofs/Axiom-K lemma
 UIP : ∀{a} {A : Set a} {x y : A}
@@ -82,6 +93,11 @@ cong₃ : ∀{a b c d} {A : Set a} {B : Set b} {C : Set c} {D : Set d}
         f x1 y1 z1 ≡ f x2 y2 z2
 cong₃ f refl refl refl = refl
 
+subst₃ : ∀{a b c ℓ} {A : Set a} {B : Set b} {C : Set c}
+         (P : A → B → C → Set ℓ) {x y : A} {u v : B} {w z : C} →
+         x ≡ y → u ≡ v → w ≡ z → P x u w → P y v z
+subst₃ P refl refl refl p = p         
+
 subst₂-reflₗ : ∀{a b ℓ} {A : Set a} {x : A} {B : Set b} {y1 y2 : B}
                (P : A → B → Set ℓ) (p : y1 ≡ y2) (v : P x y1) →
                subst₂ P refl p v ≡ subst (P x) p v
@@ -96,6 +112,20 @@ subst₂-reflᵣ P refl v = refl
 Σ-≡-→-≡-Σ : ∀{a b} {A : Set a} {B : A → Set b} {x1 x2 : A} {y1 : B x1} {y2 : B x2} →
             (p : x1 ≡ x2) → subst B p y1 ≡ y2 → (x1 , y1) ≡ (x2 , y2)
 Σ-≡-→-≡-Σ refl refl = refl
+
+subst-× : ∀{a b d} {D : Set d}
+          (A : D → Set a) (B : D → Set b)
+          {x y : D} (p : x ≡ y) (Ax : A x) (Bx : B x) →
+          subst (λ x → A x × B x) p (Ax , Bx)
+          ≡ (subst A p Ax , subst B p Bx)
+subst-× A B refl Ax Bx = refl
+
+subst-≡ : ∀{a b} {A : Set a} {B : Set b}
+          (f g : A → B)
+          {x y : A} (p : x ≡ y) (q : f x ≡ g x) →
+          subst (λ x → f x ≡ g x) p q
+          ≡ sym (cong f p) ∙ q ∙ cong g p
+subst-≡ f g refl q = sym $ •-idᵣ q
 
 -- Custom equational reasoning for functions
 module FunExt {a b} {A : Set a} {B : Set b} where

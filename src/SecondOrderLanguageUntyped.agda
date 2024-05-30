@@ -244,13 +244,13 @@ eraseVar-inj≡ {x = VS x} {VS y} refl refl r =
   cong VS (eraseVar-inj≡ {x = x} {y} refl refl (suc-injective r))
 
 erase-inj≡ : ∀{Γ1 Γ2 t1 t2} {x : Tm Γ1 t1} {y : Tm Γ2 t2} →
-           (p : Γ1 ≡ Γ2) (q : t1 ≡ t2) →
-           erase x ≡ erase y →
-           subst₂ Tm p q x ≡ y
+            (p : Γ1 ≡ Γ2) (q : t1 ≡ t2) →
+            erase x ≡ erase y →
+            subst₂ Tm p q x ≡ y
 eraseVec-inj≡ : ∀{Γ1 Γ2 Σ1 Σ2} {x : TmVec Γ1 Σ1} {y : TmVec Γ2 Σ2} →
-              (p : Γ1 ≡ Γ2) (q : Σ1 ≡ Σ2) →
-              eraseVec x ≡ eraseVec y →
-              subst₂ TmVec p q x ≡ y
+                (p : Γ1 ≡ Γ2) (q : Σ1 ≡ Σ2) →
+                eraseVec x ≡ eraseVec y →
+                subst₂ TmVec p q x ≡ y
 
 erase-inj≡ {x = var x} {var y} refl refl r = cong var (eraseVar-inj≡ refl refl (unVar-inj r))
 erase-inj≡ {x = constr s1 es1} {constr s2 es2} refl q r with unConstr-inj r .fst
@@ -618,10 +618,17 @@ data _⊢var_∶_ : Ctx → ℕ → ⅀ .Knd → Set where
         Γ ⊢var x ∶ κ1 →
         (κ2 ∷ Γ) ⊢var suc x ∶ κ1
 
+varTyped = _⊢var_∶_
+
 -- The typing judgment for variables is a proposition
 ⊢var-isProp : ∀{Γ x κ} → isProp (Γ ⊢var x ∶ κ)
 ⊢var-isProp ⊢0 ⊢0 = refl
 ⊢var-isProp (⊢S p) (⊢S q) = cong ⊢S (⊢var-isProp p q)
+
+-- Types of variables are unique
+⊢var-uniq : ∀{Γ x κ1 κ2} → Γ ⊢var x ∶ κ1 → Γ ⊢var x ∶ κ2 → κ1 ≡ κ2
+⊢var-uniq ⊢0 ⊢0 = refl
+⊢var-uniq (⊢S x) (⊢S y) = ⊢var-uniq x y
 
 -- Explicit typing judgment for terms
 data _⊢_∶_ (Γ : Ctx) : UTm → ⅀ .Knd → Set
@@ -641,6 +648,18 @@ data _⊢vec_∶_ Γ where
        Γ ⊢vec es ∶ Σ →
        Γ ⊢vec (e , length Δ) ∷ es ∶ ((Δ , κ) ∷ Σ)
 
+typed = _⊢_∶_
+vecTyped = _⊢vec_∶_
+
+⊢∷-elim : ∀{Γ e es n Δ κ Σ} →
+          (p : Γ ⊢vec ((e , n) ∷ es) ∶ ((Δ , κ) ∷ Σ)) →
+          Σ[ q ∈ n ≡ length Δ ]
+          Σ[ r ∈ (Δ ++ Γ) ⊢ e ∶ κ ]
+          Σ[ s ∈ Γ ⊢vec es ∶ Σ ]
+          subst (λ x → Γ ⊢vec ((e , x) ∷ es) ∶ ((Δ , κ) ∷ Σ)) q p
+          ≡ ⊢∷ r s
+⊢∷-elim (⊢∷ r s) = refl , r , s , refl          
+
 -- The typing judgment is a proposition
 ⊢-isProp : ∀{Γ e κ} → isProp (Γ ⊢ e ∶ κ)
 ⊢vec-isProp : ∀{Γ es Σ} → isProp (Γ ⊢vec es ∶ Σ)
@@ -650,6 +669,11 @@ data _⊢vec_∶_ Γ where
 
 ⊢vec-isProp ⊢[] ⊢[] = refl
 ⊢vec-isProp (⊢∷ e1 es1) (⊢∷ e2 es2) = cong₂ ⊢∷ (⊢-isProp e1 e2) (⊢vec-isProp es1 es2)
+
+-- Types of terms are unique
+⊢-uniq : ∀{Γ e κ1 κ2} → Γ ⊢ e ∶ κ1 → Γ ⊢ e ∶ κ2 → κ1 ≡ κ2
+⊢-uniq (⊢var x1) (⊢var x2) = ⊢var-uniq x1 x2
+⊢-uniq (⊢constr s es1) (⊢constr .s es2) = refl
 
 -- An erased term is well-typed
 ⊢eraseVar : ∀{Γ κ} (x : Var Γ κ) → Γ ⊢var eraseVar x ∶ κ
@@ -664,6 +688,12 @@ data _⊢vec_∶_ Γ where
 
 ⊢eraseVec [] = ⊢[]
 ⊢eraseVec (e ∷ es) = ⊢∷ (⊢erase e) (⊢eraseVec es) 
+
+-- If two erased terms are equivalent, then they have the same type
+erase≡⇒ty≡ : ∀{Γ κ1 κ2} {e1 : Tm Γ κ1} {e2 : Tm Γ κ2} →
+             erase e1 ≡ erase e2 → κ1 ≡ κ2
+erase≡⇒ty≡ {Γ} {κ1} {κ2} {e1} {e2} p =
+  ⊢-uniq (⊢erase e1) $ subst (λ x → Γ ⊢ x ∶ κ2) (sym p) (⊢erase e2)
 
 {-
 Convert a proof of well-typedness of a term to
@@ -681,6 +711,13 @@ toTm (⊢constr s es) = constr s (toTmVec es)
 
 toTmVec ⊢[] = []
 toTmVec (⊢∷ e es) = toTm e ∷ toTmVec es
+
+substTy-toTm-constr : ∀{Γ s es κ} →
+                      (p : ⅀ .TyPos s .snd ≡ κ)
+                      (⊢es : Γ ⊢vec es ∶ ⅀ .TyPos s .fst) →
+                      toTm (subst (λ x → Γ ⊢ constr s es ∶ x) p (⊢constr s ⊢es))
+                      ≡ subst (Tm Γ) p (constr s (toTmVec ⊢es))
+substTy-toTm-constr refl ⊢es = refl
 
 {-
 Converting a proof of well-typedness of a term to
@@ -723,5 +760,5 @@ untyped≅inherent = Σ-Prop-≅
   (λ _ → toTm)
   erase
   (λ e → erase∘toTm)
-  ⊢erase 
-  toTm∘⊢erase 
+  ⊢erase  
+  toTm∘⊢erase

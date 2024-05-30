@@ -19,6 +19,9 @@ open import Common.Isomorphism
 
 module Common.Relations where
 
+⇒-refl : ∀{a b ℓ} {A : Set a} {B : Set b} (R : REL A B ℓ) → R ⇒ R
+⇒-refl R p = p
+
 -- R is a propositional relation if each R x y is a proposition
 isPropRel : ∀{a b ℓ} {A : Set a} {B : Set b} →
             REL A B ℓ → Set (a ⊔ b ⊔ ℓ)
@@ -53,6 +56,13 @@ Generalization of the Kleene star to a set of pairs
 ⋆ {ℓ = ℓ} R [] (x ∷ ys) = Lift ℓ ⊥
 ⋆ {ℓ = ℓ} R (x ∷ xs) [] = Lift ℓ ⊥
 ⋆ R (x ∷ xs) (y ∷ ys) = R x y × ⋆ R xs ys
+
+-- Appending related lists preserves relatedness
+⋆-++ : ∀{a b ℓ} {A : Set a} {B : Set b} →
+       {R : REL A B ℓ} {xs1 xs2 : List A} {ys1 ys2 : List B} →
+       ⋆ R xs1 ys1 → ⋆ R xs2 ys2 → ⋆ R (xs1 ++ xs2) (ys1 ++ ys2)
+⋆-++ {xs1 = []} {ys1 = []} a b = b
+⋆-++ {xs1 = x ∷ xs} {ys1 = y ∷ ys} (a , b) c = a , ⋆-++ b c      
 
 -- ⋆ preserves propositionality
 ⋆-isPropRel : ∀{a b ℓ} {A : Set a} {B : Set b} {R : REL A B ℓ} →

@@ -30,7 +30,7 @@ open import SecondOrderLanguage ⅀ public
           Ren to TyRen; IdRen to TyIdRen; Keep to TyKeep; Keep* to TyKeep*; Keep*•Drop* to TyKeep*•Drop*;
           Keep*◦Drop* to TyKeep*◦Drop*; Drop to TyDrop; Drop* to TyDrop*; Drop*• to TyDrop*•;
           Drop*ι to TyDrop*ι; Drop*◦ to TyDrop*◦; renVar to tyRenVar; ren to tyRen; renVec to tyRenVec;
-          Sub to TySub; _•◦_ to _•◦ₜ_; DropSub to TyDropSub; DropSub* to TyDropSub*;
+          Sub to TySub; _•◦_ to _•◦ₜ_; _◦•_ to _◦•ₜ_; DropSub to TyDropSub; DropSub* to TyDropSub*;
           KeepSub to TyKeepSub; KeepSub* to TyKeepSub*; ι to ιₜ; IdSub to TyIdSub; subVec to tySubVec;
           subVar to tySubVar; sub to tySub; Ctx to KndCtx; MCtx to MKndCtx; V0 to TV0; VS to TVS;
           sub◦ to tySub◦; substV0 to substTyV0; substVS to substTyVS; substCtx-Var to substCtx-TyVar;
@@ -117,17 +117,13 @@ Binder : KndCtx → Set
 Binder Γ = Σ[ Γ' ∈ KndCtx ] (Ctx (Γ' ++ Γ) × Typ (Γ' ++ Γ))
 
 renBinder : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) → Binder Γ1 → Binder Γ2
-fst (renBinder ξ (Γ' , Δ , t)) = Γ'
-fst (snd (renBinder ξ (Γ' , Δ , t))) = renCtx (TyKeep* ξ Γ') Δ
-snd (snd (renBinder ξ (Γ' , Δ , t))) = renTyp (TyKeep* ξ Γ') t
+renBinder ξ (Γ' , Δ , t) = Γ' , renCtx (TyKeep* ξ Γ') Δ , renTyp (TyKeep* ξ Γ') t
 
 renBinders : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) → List (Binder Γ1) → List (Binder Γ2)
 renBinders ξ = map (renBinder ξ)
 
 subBinder : ∀{Γ1 Γ2} (σ : TySub Γ1 Γ2) → Binder Γ1 → Binder Γ2
-fst (subBinder σ (Γ' , Δ , t)) = Γ'
-fst (snd (subBinder σ (Γ' , Δ , t))) = subCtx (TyKeepSub* σ Γ') Δ
-snd (snd (subBinder σ (Γ' , Δ , t))) = subTyp (TyKeepSub* σ Γ') t
+subBinder σ (Γ' , Δ , t) = Γ' , subCtx (TyKeepSub* σ Γ') Δ , subTyp (TyKeepSub* σ Γ') t
 
 subBinderι : ∀{Γ1 Γ2} (ξ : TyRen Γ1 Γ2) → subBinder (ιₜ ξ) ≗ renBinder ξ
 subBinderι ξ (Γ , Δ , (κ , t)) = Σ-≡,≡↔≡ .Inverse.f (
@@ -156,9 +152,10 @@ MBinder : MKndCtx → Set
 MBinder Γ = Σ[ Γ' ∈ KndCtx ] (List (Σ[ κ ∈ _ ] (MTm (map (λ x → [] , x) Γ' ++ Γ) ([] , κ))) × Σ[ κ ∈ _ ] (MTm (map (λ x → [] , x) Γ' ++ Γ) ([] , κ)))
 
 interpBinders : ∀{Σ} (Γ : KndCtx) → TyVec Γ Σ → MBinder Σ → Binder Γ
-fst (interpBinders Γ η (Γ' , Δ , t)) = Γ'
-fst (snd (interpBinders Γ η (Γ' , Δ , t))) = map (λ{ (κ , x) → κ , interpTm x (tmVec++ η Γ') TyIdSub }) Δ
-snd (snd (interpBinders Γ η (Γ' , Δ , (κ , t)))) = κ , interpTm t (tmVec++ η Γ') TyIdSub
+interpBinders Γ η (Γ' , Δ , (κ , t)) =
+  Γ' , 
+  map (λ{ (κ , x) → κ , interpTm x (tmVec++ η Γ') TyIdSub }) Δ , 
+  κ , interpTm t (tmVec++ η Γ') TyIdSub
 
 map-interpTm : ∀{Γ1 Γ2 Σ} (σ : TySub Γ1 Γ2) (η : TyVec Γ1 Σ) (Γ : KndCtx) →
                 (Δ : List (Σ[ κ ∈ _ ] (MTm (map (λ x → [] , x) Γ ++ Σ) ([] , κ)))) →

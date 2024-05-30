@@ -51,7 +51,7 @@ record ThirdOrderSignature : Set₁ where
     TmTyPos : Shape → List (List (⅀₂ .Knd) × ⅀₂ .Knd)
 
     -- Term part of constructor signature, which depends on the type part
-    TmPos : (s : Shape) (Γ : KndCtx') (ts : TyVec' Γ (TmTyPos s)) → List (Σ[ Γ' ∈ KndCtx' ] (Ctx' (Γ' ++ Γ) × Typ' (Γ' ++ Γ))) × Typ' Γ
+    TmPos : (s : Shape) (Γ : KndCtx') (ts : TyVec' Γ (TmTyPos s)) → List (Binder ⅀₂ Γ) × Typ' Γ
 
     {-
     Coherence requirements
