@@ -113,8 +113,8 @@ data Expr : (A : TyRep) → Set where
   EURenε : Expr URen'
   EURenKeep : Expr URen' → Expr URen'
   EURenDrop : Expr URen' → Expr URen'
-  EURenId : Expr URen'
-  _•U_ : Expr URen' → Expr URen' → Expr URen'
+  EUIdRen : Expr URen'
+  _•U'_ : Expr URen' → Expr URen' → Expr URen'
   EUKeep* : Expr URen' → Expr ℕ' → Expr URen'
   EUDrop* : Expr URen' → Expr ℕ' → Expr URen'
   eraseERen : ∀{Γ1 Γ2} → Expr (Ren' Γ1 Γ2) → Expr URen'
@@ -122,8 +122,7 @@ data Expr : (A : TyRep) → Set where
   -- Raw substitutions
   EUSubε : Expr USub'
   _▸U_ : Expr USub' → Expr UTm' → Expr USub'
-  EUSubId : Expr USub'
-  _•◦U_ : Expr URen' → Expr USub' → Expr USub'
+  _•◦U'_ : Expr URen' → Expr USub' → Expr USub'
   _◦U'_ : Expr USub' → Expr USub' → Expr USub'
   eraseESub : ∀{Γ1 Γ2} → Expr (Sub' Γ1 Γ2) → Expr USub'
 
@@ -190,32 +189,31 @@ interp (e ∷E es) = interp e ∷ interp es
 interp (renETmVec ξ es) = renVec (interp ξ) (interp es)
 interp (subETmVec σ es) = subVec (interp σ) (interp es)
 
-interp EURenε = id
+interp EURenε = UIdRen
 interp (EURenKeep ξ) = UKeep (interp ξ)
 interp (EURenDrop ξ) = UDrop (interp ξ)
-interp EURenId = id
-interp (ξ1 •U ξ2) = interp ξ1 ∘ interp ξ2
+interp EUIdRen = UIdRen
+interp (ξ1 •U' ξ2) = interp ξ1 •U interp ξ2
 interp (EUKeep* ξ k) = UKeep* (interp ξ) (interp k)
 interp (EUDrop* ξ k) = UDrop* (interp ξ) (interp k)
 interp (eraseERen e) = eraseRen (interp e)
 
-interp EUSubε = var
+interp EUSubε = USubε
 interp (σ ▸U e) = interp σ ▹ interp e
-interp EUSubId = var
-interp (ξ •◦U σ) = URenSub (interp ξ) (interp σ)
+interp (ξ •◦U' σ) = interp ξ •◦U interp σ
 interp (σ1 ◦U' σ2) = interp σ1 ◦U interp σ2
 interp (eraseESub σ) = eraseSub (interp σ)
 
 interp Z = zero
 interp (S n) = suc (interp n)
-interp (renEUVar ξ n) = interp ξ (interp n)
+interp (renEUVar ξ n) = renVarUnty (interp ξ) (interp n)
 interp (eraseEVar n) = eraseVar (interp n)
 
 interp (varU n) = var (interp n)
 interp (constrU s es) = constr s (interp es)
 interp (renEUTm ξ e) = renUnty (interp ξ) (interp e)
 interp (subEUTm σ e) = subUnty (interp σ) (interp e)
-interp (subEUVar σ x) = interp σ (interp x)
+interp (subEUVar σ x) = subVarUnty (interp σ) (interp x)
 interp (eraseETm e) = erase (interp e)
 
 interp []U = []
@@ -611,12 +609,12 @@ simpl (subETmVec σ es) with simpl σ | simpl es
 ... | (es'' , r) = es'' , r ∙ cong₂ subVec p q
 -- simpl (EURenKeep ξ) = {!   !}
 -- simpl (EURenDrop ξ) = {!   !}
--- simpl (ξ1 •U ξ2) = {!   !}
+-- simpl (ξ1 •U' ξ2) = {!   !}
 -- simpl (EUKeep* ξ Δ) = {!   !}
 -- simpl (EUDrop* ξ Δ) = {!   !}
 -- simpl (eraseERen ξ) = {!   !}
 -- simpl (σ ▸U e) = {!   !}
--- simpl (ξ •◦U σ) = {!   !}
+-- simpl (ξ •◦U' σ) = {!   !}
 -- simpl (σ1 ◦U' σ2) = {!   !}
 -- simpl (ιE ξ) with simpl ξ
 -- ... | (ξ' , p) with simplι ξ'
