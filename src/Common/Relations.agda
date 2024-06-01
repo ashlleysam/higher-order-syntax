@@ -1,8 +1,9 @@
 {-# OPTIONS --safe #-}
 
-open import Level
+open import Level renaming (zero to ℓ-zero; suc to ℓ-suc)
 open import Data.Unit
 open import Data.Empty
+open import Data.Nat hiding (_⊔_)
 open import Data.Sum renaming (inj₁ to inl; inj₂ to inr) hiding (map)
 open import Data.List
 open import Data.List.Properties
@@ -56,6 +57,14 @@ Generalization of the Kleene star to a set of pairs
 ⋆ {ℓ = ℓ} R [] (x ∷ ys) = Lift ℓ ⊥
 ⋆ {ℓ = ℓ} R (x ∷ xs) [] = Lift ℓ ⊥
 ⋆ R (x ∷ xs) (y ∷ ys) = R x y × ⋆ R xs ys
+
+⋆⇒len≡ : ∀{a b ℓ} {A : Set a} {B : Set b} →
+         {R : REL A B ℓ} {xs : List A} {ys : List B} →
+         ⋆ R xs ys → length xs ≡ length ys
+⋆⇒len≡ {xs = []} {[]} (lift tt) = refl
+⋆⇒len≡ {xs = []} {x ∷ ys} ()
+⋆⇒len≡ {xs = x ∷ xs} {[]} ()
+⋆⇒len≡ {xs = x ∷ xs} {y ∷ ys} (p , q) = cong suc (⋆⇒len≡ q)
 
 -- Appending related lists preserves relatedness
 ⋆-++ : ∀{a b ℓ} {A : Set a} {B : Set b} →

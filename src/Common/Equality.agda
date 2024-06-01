@@ -120,12 +120,24 @@ subst-× : ∀{a b d} {D : Set d}
           ≡ (subst A p Ax , subst B p Bx)
 subst-× A B refl Ax Bx = refl
 
+subst-Σ-fst : ∀{a b d} {D : Set d}
+              (A : D → Set a) (B : (d : D) → A d → Set b)
+              {x y : D} (p : x ≡ y) (Ax : A x) (Bx : B x Ax) →
+              subst (λ x → Σ[ y ∈ A x ] B x y) p (Ax , Bx) .fst
+              ≡ subst A p Ax
+subst-Σ-fst A B refl Ax Bx = refl
+
 subst-≡ : ∀{a b} {A : Set a} {B : Set b}
           (f g : A → B)
           {x y : A} (p : x ≡ y) (q : f x ≡ g x) →
           subst (λ x → f x ≡ g x) p q
           ≡ sym (cong f p) ∙ q ∙ cong g p
 subst-≡ f g refl q = sym $ •-idᵣ q
+
+subst-const : ∀{a b} {A : Set a} {B : Set b}
+              {x y : A} (p : x ≡ y) (b : B) →
+              subst (λ x → B) p b ≡ b
+subst-const refl b = refl
 
 -- Custom equational reasoning for functions
 module FunExt {a b} {A : Set a} {B : Set b} where

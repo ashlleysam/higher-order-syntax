@@ -654,14 +654,14 @@ f-vec-cons (∘ₘ-is-∘ 𝕄1 𝕄2) (Γ2 , α23 , α12) ((Δ2 , κ2) ∷ Σ2 
        ≡ mor (𝕄1 ∘ₘ 𝕄2) p q e
 ∘ₘ≗∘ 𝕄1 𝕄2 p q e = f-≗-f-mor (∘ₘ-is-∘ 𝕄1 𝕄2) p q e
 
-∘ₘ-vec≗∘-vec : ∀{⅀1 ⅀2 ⅀3} (𝕄1 : LangMor ⅀2 ⅀3) (𝕄2 : LangMor ⅀1 ⅀2)
+∘ₘ≗∘-vec : ∀{⅀1 ⅀2 ⅀3} (𝕄1 : LangMor ⅀2 ⅀3) (𝕄2 : LangMor ⅀1 ⅀2)
               {Γ1 Γ2 Σ1 Σ2} (p : (𝕄1 .mor-rel .α ∘ᵣ 𝕄2 .mor-rel .α) Γ1 Γ2)
               (q : (𝕄1 .mor-rel .μ ∘ᵣ 𝕄2 .mor-rel .μ) Σ1 Σ2)
               (es : TmVec ⅀1 Γ1 Σ1) →
               mor-vec 𝕄1 (p .snd .fst) (q .snd .fst)
                 (mor-vec 𝕄2 (p .snd .snd) (q .snd .snd) es)
               ≡ mor-vec (𝕄1 ∘ₘ 𝕄2) p q es
-∘ₘ-vec≗∘-vec 𝕄1 𝕄2 p q es = f-vec-≗-f-mor-vec (∘ₘ-is-∘ 𝕄1 𝕄2) p q es
+∘ₘ≗∘-vec 𝕄1 𝕄2 p q es = f-vec-≗-f-mor-vec (∘ₘ-is-∘ 𝕄1 𝕄2) p q es
 
 -- Renaming morphism
 renRel : ∀{⅀} → MorRel ⅀ ⅀
@@ -768,11 +768,11 @@ subMor≗sub {⅀} {Γ1} {Γ2} {κ1} {κ2} σ p e =
     ≡⟨ (sym $ f-≗-f-mor sub-is-sub σ p e) ⟩
   subst (Tm ⅀ Γ2) p (sub ⅀ σ e) ∎
 
-subMor-vec≗sub-vec : ∀{⅀ Γ1 Γ2 Σ1 Σ2} (σ : Sub ⅀ Γ1 Γ2) (p : Σ1 ≡ Σ2)
-                      (es : TmVec ⅀ Γ1 Σ1) →
-                      mor-vec subMor σ p es ≡
-                      subst (TmVec ⅀ Γ2) p (subVec ⅀ σ es)
-subMor-vec≗sub-vec {⅀} {Γ1} {Γ2} {Σ1} {Σ2} σ p es =
+subMor≗sub-vec : ∀{⅀ Γ1 Γ2 Σ1 Σ2} (σ : Sub ⅀ Γ1 Γ2) (p : Σ1 ≡ Σ2)
+                (es : TmVec ⅀ Γ1 Σ1) →
+                mor-vec subMor σ p es ≡
+                subst (TmVec ⅀ Γ2) p (subVec ⅀ σ es)
+subMor≗sub-vec {⅀} {Γ1} {Γ2} {Σ1} {Σ2} σ p es =
   mor-vec subMor σ p es
     ≡⟨ mor-vec-≡ subMor-≡-f-mor-sub-is-sub σ p es ⟩
   mor-vec (f-mor sub-is-sub) σ p es
