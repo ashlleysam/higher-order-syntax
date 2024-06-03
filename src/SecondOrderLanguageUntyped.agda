@@ -6,6 +6,7 @@ open import Data.Empty
 open import Data.Nat
 open import Data.Nat.Properties
 open import Data.List
+open import Data.List.Properties
 open import Data.Unit
 open import Relation.Nullary
 open import Relation.Binary
@@ -158,19 +159,24 @@ UDrop ξ1 •U UIdRen = UDrop ξ1
 UDrop ξ1 •U UKeep ξ2 = UDrop (ξ1 •U UKeep ξ2)
 UDrop ξ1 •U UDrop ξ2 = UDrop (ξ1 •U UDrop ξ2)
 
-•U-id-l : ∀{ξ1} → ξ1 ≈ᵣ UIdRen → (ξ2 : URen) → ξ1 •U ξ2 ≈ᵣ ξ2
-•U-id-l IdRen≈ᵣ ξ2 = ≈ᵣ-refl
-•U-id-l (Keep-Id≈ᵣId p) UIdRen = Keep-Id≈ᵣId p
-•U-id-l (Keep-Id≈ᵣId p) (UKeep ξ2) = UKeep≈ᵣ (•U-id-l p ξ2)
-•U-id-l (Keep-Id≈ᵣId p) (UDrop ξ2) = UDrop≈ᵣ (•U-id-l p ξ2)
+•U-idᵣ : (ξ : URen) → ξ •U UIdRen ≡ ξ
+•U-idᵣ UIdRen = refl
+•U-idᵣ (UKeep ξ) = refl
+•U-idᵣ (UDrop ξ) = refl
 
-•U-id-r : ∀{ξ2} (ξ1 : URen) → ξ2 ≈ᵣ UIdRen → ξ1 •U ξ2 ≈ᵣ ξ1
-•U-id-r UIdRen IdRen≈ᵣ = IdRen≈ᵣ
-•U-id-r UIdRen (Keep-Id≈ᵣId p) = Keep-Id≈ᵣId p
-•U-id-r (UKeep ξ1) IdRen≈ᵣ = ≈ᵣ-refl
-•U-id-r (UKeep ξ1) (Keep-Id≈ᵣId p) = UKeep≈ᵣ (•U-id-r ξ1 p)
-•U-id-r (UDrop ξ1) IdRen≈ᵣ = ≈ᵣ-refl
-•U-id-r (UDrop ξ1) (Keep-Id≈ᵣId p) = UDrop≈ᵣ (•U-id-r ξ1 (Keep-Id≈ᵣId p))
+•U-idₗ-≈ᵣ : ∀{ξ1} → ξ1 ≈ᵣ UIdRen → (ξ2 : URen) → ξ1 •U ξ2 ≈ᵣ ξ2
+•U-idₗ-≈ᵣ IdRen≈ᵣ ξ2 = ≈ᵣ-refl
+•U-idₗ-≈ᵣ (Keep-Id≈ᵣId p) UIdRen = Keep-Id≈ᵣId p
+•U-idₗ-≈ᵣ (Keep-Id≈ᵣId p) (UKeep ξ2) = UKeep≈ᵣ (•U-idₗ-≈ᵣ p ξ2)
+•U-idₗ-≈ᵣ (Keep-Id≈ᵣId p) (UDrop ξ2) = UDrop≈ᵣ (•U-idₗ-≈ᵣ p ξ2)
+
+•U-idᵣ-≈ᵣ : ∀{ξ2} (ξ1 : URen) → ξ2 ≈ᵣ UIdRen → ξ1 •U ξ2 ≈ᵣ ξ1
+•U-idᵣ-≈ᵣ UIdRen IdRen≈ᵣ = IdRen≈ᵣ
+•U-idᵣ-≈ᵣ UIdRen (Keep-Id≈ᵣId p) = Keep-Id≈ᵣId p
+•U-idᵣ-≈ᵣ (UKeep ξ1) IdRen≈ᵣ = ≈ᵣ-refl
+•U-idᵣ-≈ᵣ (UKeep ξ1) (Keep-Id≈ᵣId p) = UKeep≈ᵣ (•U-idᵣ-≈ᵣ ξ1 p)
+•U-idᵣ-≈ᵣ (UDrop ξ1) IdRen≈ᵣ = ≈ᵣ-refl
+•U-idᵣ-≈ᵣ (UDrop ξ1) (Keep-Id≈ᵣId p) = UDrop≈ᵣ (•U-idᵣ-≈ᵣ ξ1 (Keep-Id≈ᵣId p))
 
 •U-resp-≈ᵣ-l : ∀{ξ1 ξ2} → ξ1 ≈ᵣ ξ2 → (ξ3 : URen) → ξ1 •U ξ3 ≈ᵣ ξ2 •U ξ3
 •U-resp-≈ᵣ-l IdRen≈ᵣ ξ3 = ≈ᵣ-refl
@@ -192,13 +198,13 @@ UDrop ξ1 •U UDrop ξ2 = UDrop (ξ1 •U UDrop ξ2)
 •U-resp-≈ᵣ-r (UKeep ξ1) IdRen≈ᵣ = ≈ᵣ-refl
 •U-resp-≈ᵣ-r (UKeep ξ1) (UKeep≈ᵣ p) = UKeep≈ᵣ (•U-resp-≈ᵣ-r ξ1 p)
 •U-resp-≈ᵣ-r (UKeep ξ1) (UDrop≈ᵣ p) = UDrop≈ᵣ (•U-resp-≈ᵣ-r ξ1 p)
-•U-resp-≈ᵣ-r (UKeep ξ1) (Keep-Id≈ᵣId p) = UKeep≈ᵣ (•U-id-r ξ1 p)
-•U-resp-≈ᵣ-r (UKeep ξ1) (Id≈ᵣKeep-Id p) = UKeep≈ᵣ (≈ᵣ-sym (•U-id-r ξ1 (≈ᵣ-sym p)))
+•U-resp-≈ᵣ-r (UKeep ξ1) (Keep-Id≈ᵣId p) = UKeep≈ᵣ (•U-idᵣ-≈ᵣ ξ1 p)
+•U-resp-≈ᵣ-r (UKeep ξ1) (Id≈ᵣKeep-Id p) = UKeep≈ᵣ (≈ᵣ-sym (•U-idᵣ-≈ᵣ ξ1 (≈ᵣ-sym p)))
 •U-resp-≈ᵣ-r (UDrop ξ1) IdRen≈ᵣ = ≈ᵣ-refl
 •U-resp-≈ᵣ-r (UDrop ξ1) (UKeep≈ᵣ p) = UDrop≈ᵣ (•U-resp-≈ᵣ-r ξ1 (UKeep≈ᵣ p))
 •U-resp-≈ᵣ-r (UDrop ξ1) (UDrop≈ᵣ p) = UDrop≈ᵣ (•U-resp-≈ᵣ-r ξ1 (UDrop≈ᵣ p))
-•U-resp-≈ᵣ-r (UDrop ξ1) (Keep-Id≈ᵣId p) = UDrop≈ᵣ (•U-id-r ξ1 (Keep-Id≈ᵣId p))
-•U-resp-≈ᵣ-r (UDrop ξ1) (Id≈ᵣKeep-Id p) = UDrop≈ᵣ (≈ᵣ-sym (•U-id-r ξ1 (Keep-Id≈ᵣId (≈ᵣ-sym p))))
+•U-resp-≈ᵣ-r (UDrop ξ1) (Keep-Id≈ᵣId p) = UDrop≈ᵣ (•U-idᵣ-≈ᵣ ξ1 (Keep-Id≈ᵣId p))
+•U-resp-≈ᵣ-r (UDrop ξ1) (Id≈ᵣKeep-Id p) = UDrop≈ᵣ (≈ᵣ-sym (•U-idᵣ-≈ᵣ ξ1 (Keep-Id≈ᵣId (≈ᵣ-sym p))))
 
 •U-resp-≈ᵣ : ∀{ξ1 ξ2 ξ3 ξ4} → ξ1 ≈ᵣ ξ2 → ξ3 ≈ᵣ ξ4 → ξ1 •U ξ3 ≈ᵣ ξ2 •U ξ4
 •U-resp-≈ᵣ {ξ1} {ξ2} {ξ3} {ξ4} p q = 
@@ -251,6 +257,30 @@ renUnty ξ (constr s es) = constr s (renVecUnty ξ es)
 renVecUnty ξ [] = []
 renVecUnty ξ ((e , k) ∷ es) = (renUnty (UKeep* ξ k) e , k) ∷ renVecUnty ξ es
 
+renVarUnty-≈Id : ∀{ξ} → ξ ≈ᵣ UIdRen → (x : ℕ) → renVarUnty ξ x ≡ x
+renVarUnty-≈Id IdRen≈ᵣ x = refl
+renVarUnty-≈Id (Keep-Id≈ᵣId p) zero = refl
+renVarUnty-≈Id (Keep-Id≈ᵣId p) (suc x) = cong suc $ renVarUnty-≈Id p x
+
+renUnty-≈Id : ∀{ξ} → ξ ≈ᵣ UIdRen → (e : UTm) → renUnty ξ e ≡ e
+renVecUnty-≈Id : ∀{ξ} → ξ ≈ᵣ UIdRen → (es : UTmVec) → renVecUnty ξ es ≡ es
+
+renUnty-≈Id p (var x) = cong var $ renVarUnty-≈Id p x
+renUnty-≈Id p (constr s es) = cong (constr s) (renVecUnty-≈Id p es)
+
+renVecUnty-≈Id p [] = refl
+renVecUnty-≈Id p ((e , k) ∷ es) =
+  cong₃ eraseCons
+    (renUnty-≈Id (≈ᵣ-trans (UKeep*-resp-≈ᵣ p k) (UKeep*-IdRenIdRen≈ᵣ k)) e)
+    refl
+    (renVecUnty-≈Id p es)
+
+renUnty-Id : renUnty UIdRen ≗ id
+renUnty-Id e = renUnty-≈Id IdRen≈ᵣ e
+
+renVecUnty-Id : renVecUnty UIdRen ≗ id
+renVecUnty-Id es = renVecUnty-≈Id IdRen≈ᵣ es
+
 renUnty-resp-≈ᵣ : ∀{ξ1 ξ2} → ξ1 ≈ᵣ ξ2 → renUnty ξ1 ≗ renUnty ξ2
 renVecUnty-resp-≈ᵣ : ∀{ξ1 ξ2} → ξ1 ≈ᵣ ξ2 → renVecUnty ξ1 ≗ renVecUnty ξ2
 
@@ -262,6 +292,38 @@ renVecUnty-resp-≈ᵣ p ((e , k) ∷ es) =
   cong₂ (λ x y → (x , k) ∷ y)
     (renUnty-resp-≈ᵣ (UKeep*-resp-≈ᵣ p k) e)
     (renVecUnty-resp-≈ᵣ p es)
+
+UKeep*•UKeep* : (ξ1 ξ2 : URen) (n : ℕ) →
+                UKeep* (ξ1 •U ξ2) n ≡ UKeep* ξ1 n •U UKeep* ξ2 n
+UKeep*•UKeep* ξ1 ξ2 zero = refl
+UKeep*•UKeep* ξ1 ξ2 (suc n) = cong UKeep $ UKeep*•UKeep* ξ1 ξ2 n
+
+renVarUnty• : (ξ1 ξ2 : URen) → renVarUnty ξ1 ∘ renVarUnty ξ2 ≗ renVarUnty (ξ1 •U ξ2)
+renVarUnty• UIdRen ξ2 x = refl
+renVarUnty• (UKeep ξ1) UIdRen x = refl
+renVarUnty• (UKeep ξ1) (UKeep ξ2) zero = refl
+renVarUnty• (UKeep ξ1) (UKeep ξ2) (suc x) = cong suc $ renVarUnty• ξ1 ξ2 x
+renVarUnty• (UKeep ξ1) (UDrop ξ2) x = cong suc $ renVarUnty• ξ1 ξ2 x
+renVarUnty• (UDrop ξ1) UIdRen x = refl
+renVarUnty• (UDrop ξ1) (UKeep ξ2) x = cong suc $ renVarUnty• ξ1 (UKeep ξ2) x
+renVarUnty• (UDrop ξ1) (UDrop ξ2) x = cong suc $ renVarUnty• ξ1 (UDrop ξ2) x
+
+renUnty• : (ξ1 ξ2 : URen) → renUnty ξ1 ∘ renUnty ξ2 ≗ renUnty (ξ1 •U ξ2)
+renVecUnty• : (ξ1 ξ2 : URen) → renVecUnty ξ1 ∘ renVecUnty ξ2 ≗ renVecUnty (ξ1 •U ξ2)
+
+renUnty• ξ1 ξ2 (var x) = cong var $ renVarUnty• ξ1 ξ2 x
+renUnty• ξ1 ξ2 (constr s es) = cong (constr s) $ renVecUnty• ξ1 ξ2 es
+
+renVecUnty• ξ1 ξ2 [] = refl
+renVecUnty• ξ1 ξ2 ((e , k) ∷ es) =
+  cong₃ eraseCons
+    (renUnty (UKeep* ξ1 k) (renUnty (UKeep* ξ2 k) e)
+      ≡⟨ renUnty• (UKeep* ξ1 k) (UKeep* ξ2 k) e ⟩
+    renUnty (UKeep* ξ1 k •U UKeep* ξ2 k) e
+      ≡⟨ (sym $ cong (λ x → renUnty x e) $ UKeep*•UKeep* ξ1 ξ2 k) ⟩
+    renUnty (UKeep* (ξ1 •U ξ2) k) e ∎)
+    refl
+    (renVecUnty• ξ1 ξ2 es)
 
 ------------------
 -- SUBSTITUTION --
@@ -278,6 +340,10 @@ infixr 9 _•◦U_
 _•◦U_ : URen → USub → USub
 ξ •◦U USubε = USubε
 ξ •◦U (σ ▹ e) = (ξ •◦U σ) ▹ renUnty ξ e
+
+•◦U-idₗ : (σ : USub) → UIdRen •◦U σ ≡ σ
+•◦U-idₗ USubε = refl
+•◦U-idₗ (σ ▹ e) = cong₂ _▹_ (•◦U-idₗ σ) (renUnty-Id e)
 
 •◦U-resp-≈ᵣ : ∀{ξ1 ξ2} → ξ1 ≈ᵣ ξ2 → (σ : USub) → ξ1 •◦U σ ≡ ξ2 •◦U σ
 •◦U-resp-≈ᵣ p USubε = refl
@@ -318,6 +384,13 @@ infixr 9 _◦U_
 _◦U_ : USub → USub → USub
 σ1 ◦U USubε = USubε
 σ1 ◦U (σ2 ▹ e) = (σ1 ◦U σ2) ▹ subUnty σ1 e
+
+_◦•U_ : USub → URen → USub
+σ ◦•U UIdRen = σ
+USubε ◦•U UKeep ξ = USubε
+(σ ▹ e) ◦•U UKeep ξ = (σ ◦•U ξ) ▹ e
+USubε ◦•U UDrop ξ = USubε
+(σ ▹ e) ◦•U UDrop ξ = σ ◦•U ξ
 
 ------------------
 -- TYPE ERASURE --
@@ -428,15 +501,22 @@ eraseRen-Id : ∀{Γ} → eraseRen (IdRen {Γ}) ≡ UKeep* UIdRen (length Γ)
 eraseRen-Id {[]} = refl
 eraseRen-Id {t ∷ Γ} = cong UKeep eraseRen-Id
 
-eraseRen-Keep* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) (Δ : Ctx) →
-                 eraseRen (Keep* ξ Δ) ≡ UKeep* (eraseRen ξ) (length Δ)
-eraseRen-Keep* ξ [] = refl
-eraseRen-Keep* ξ (t ∷ Δ) = cong UKeep (eraseRen-Keep* ξ Δ)
+eraseRen-Id≡IdH : ∀{Γ1 Γ2} → Γ1 ≡ Γ2 → eraseRen (IdRen {Γ1}) ≡ eraseRen (IdRen {Γ2})
+eraseRen-Id≡IdH refl = refl
 
-eraseRen-Drop* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) (Δ : Ctx) →
-                 eraseRen (Drop* ξ Δ) ≡ UDrop* (eraseRen ξ) (length Δ)
-eraseRen-Drop* ξ [] = refl
-eraseRen-Drop* ξ (t ∷ Δ) = cong UDrop (eraseRen-Drop* ξ Δ)
+eraseRen-Id≈Id : ∀{Γ} → eraseRen (IdRen {Γ}) ≈ᵣ UIdRen
+eraseRen-Id≈Id {[]} = ≈ᵣ-refl
+eraseRen-Id≈Id {x ∷ Γ} = Keep-Id≈ᵣId eraseRen-Id≈Id
+
+eraseRen-distr-Keep* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) (Δ : Ctx) →
+                      eraseRen (Keep* ξ Δ) ≡ UKeep* (eraseRen ξ) (length Δ)
+eraseRen-distr-Keep* ξ [] = refl
+eraseRen-distr-Keep* ξ (t ∷ Δ) = cong UKeep (eraseRen-distr-Keep* ξ Δ)
+
+eraseRen-distr-Drop* : ∀{Γ1 Γ2} (ξ : Ren Γ1 Γ2) (Δ : Ctx) →
+                      eraseRen (Drop* ξ Δ) ≡ UDrop* (eraseRen ξ) (length Δ)
+eraseRen-distr-Drop* ξ [] = refl
+eraseRen-distr-Drop* ξ (t ∷ Δ) = cong UDrop (eraseRen-distr-Drop* ξ Δ)
 
 -- Type erasure distributes over the action of renaming
 eraseVar-distr-ren : ∀{Γ1 Γ2 t} (ξ : Ren Γ1 Γ2) (x : Var Γ1 t) →
@@ -458,22 +538,28 @@ eraseVec-distr-ren ξ (_∷_ {Δ = Δ} {Σ = Σ} e es) = cong₃ eraseCons
   (erase (ren (Keep* ξ Δ) e)
     ≡⟨ erase-distr-ren (Keep* ξ Δ) e ⟩
   renUnty (eraseRen (Keep* ξ Δ)) (erase e)
-    ≡⟨ (cong (flip renUnty (erase e)) $ eraseRen-Keep* ξ Δ) ⟩
+    ≡⟨ (cong (flip renUnty (erase e)) $ eraseRen-distr-Keep* ξ Δ) ⟩
   renUnty (UKeep* (eraseRen ξ) (length Δ)) (erase e) ∎)
   refl
   (eraseVec-distr-ren ξ es)
 
 -- Type erasure distributes over substitution operations
-erase-•◦U : ∀{Γ1 Γ2 Γ3} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
-            eraseSub (ξ •◦ σ) ≡ eraseRen ξ •◦U eraseSub σ
-erase-•◦U ξ ε = refl
-erase-•◦U ξ (σ ▸ e) = cong₂ _▹_ (erase-•◦U ξ σ) (erase-distr-ren ξ e)
+erase-distr-•◦ : ∀{Γ1 Γ2 Γ3} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) →
+                 eraseSub (ξ •◦ σ) ≡ eraseRen ξ •◦U eraseSub σ
+erase-distr-•◦ ξ ε = refl
+erase-distr-•◦ ξ (σ ▸ e) = cong₂ _▹_ (erase-distr-•◦ ξ σ) (erase-distr-ren ξ e)
+
+erase-distr-◦• : ∀{Γ1 Γ2 Γ3} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) →
+                 eraseSub (σ ◦• ξ) ≡ eraseSub σ ◦•U eraseRen ξ
+erase-distr-◦• ε ε = refl
+erase-distr-◦• (σ ▸ e) (Keep ξ) = cong₂ _▹_ (erase-distr-◦• σ ξ) refl
+erase-distr-◦• (σ ▸ e) (Drop ξ) = erase-distr-◦• σ ξ
 
 eraseSub-distr-DropSub : ∀{Γ1 Γ2 t} (σ : Sub Γ1 Γ2) →
                           eraseSub (DropSub {t = t} σ) ≡ UDropSub (eraseSub σ)
 eraseSub-distr-DropSub {Γ1} {Γ2} σ =
   eraseSub (Drop IdRen •◦ σ)
-    ≡⟨ erase-•◦U (Drop IdRen) σ ⟩
+    ≡⟨ erase-distr-•◦ (Drop IdRen) σ ⟩
   UDrop (eraseRen IdRen) •◦U eraseSub σ
     ≡⟨ (cong (λ x → UDrop x •◦U eraseSub σ) $ eraseRen-Id) ⟩
   UDrop (UKeep* UIdRen (length Γ2)) •◦U eraseSub σ
@@ -485,7 +571,7 @@ eraseSub-distr-KeepSub : ∀{Γ1 Γ2 t} (σ : Sub Γ1 Γ2) →
 eraseSub-distr-KeepSub σ = cong (λ x → x ▹ var zero) (eraseSub-distr-DropSub σ)
 
 eraseSub-distr-KeepSub* : ∀{Γ1 Γ2} (σ : Sub Γ1 Γ2) (Δ : Ctx) →
-                 eraseSub (KeepSub* σ Δ) ≡ UKeepSub* (eraseSub σ) (length Δ)
+                          eraseSub (KeepSub* σ Δ) ≡ UKeepSub* (eraseSub σ) (length Δ)
 eraseSub-distr-KeepSub* σ [] = refl
 eraseSub-distr-KeepSub* σ (t ∷ Δ) =
   eraseSub (KeepSub (KeepSub* σ Δ))
@@ -504,17 +590,69 @@ eraseSub-distr-DropSub* σ (t ∷ Δ) =
     ≡⟨ cong UDropSub (eraseSub-distr-DropSub* σ Δ) ⟩
   UDropSub (UDropSub* (eraseSub σ) (length Δ)) ∎
 
+UDrop• : (ξ1 ξ2 : URen) → UDrop ξ1 •U ξ2 ≡ UDrop (ξ1 •U ξ2)
+UDrop• UIdRen UIdRen = refl
+UDrop• UIdRen (UKeep ξ2) = refl
+UDrop• UIdRen (UDrop ξ2) = refl
+UDrop• (UKeep ξ1) UIdRen = refl
+UDrop• (UKeep ξ1) (UKeep ξ2) = refl
+UDrop• (UKeep ξ1) (UDrop ξ2) = refl
+UDrop• (UDrop ξ1) UIdRen = refl
+UDrop• (UDrop ξ1) (UKeep ξ2) = refl
+UDrop• (UDrop ξ1) (UDrop ξ2) = refl
+
+••◦U : (ξ1 ξ2 : URen) (σ : USub) → (ξ1 •U ξ2) •◦U σ ≡ ξ1 •◦U (ξ2 •◦U σ)
+••◦U ξ1 ξ2 USubε = refl
+••◦U ξ1 ξ2 (σ ▹ e) = cong₂ _▹_ (••◦U ξ1 ξ2 σ) (sym $ renUnty• ξ1 ξ2 e)
+
+UKeep•◦UDrop : (ξ : URen) (σ : USub) →
+              UDropSub (ξ •◦U σ) ≡ UKeep ξ •◦U UDropSub σ
+UKeep•◦UDrop ξ USubε = refl
+UKeep•◦UDrop ξ (σ ▹ e) =
+  cong₂ _▹_
+    (UDrop UIdRen •◦U ξ •◦U σ
+      ≡⟨ (sym $ ••◦U (UDrop UIdRen) ξ σ) ⟩
+    (UDrop UIdRen •U ξ) •◦U σ
+      ≡⟨ (cong (_•◦U σ) $ UDrop• UIdRen ξ) ⟩
+    UDrop ξ •◦U σ
+      ≡⟨ (cong (λ x → UDrop x •◦U σ) $ sym $ •U-idᵣ ξ) ⟩
+    UDrop (ξ •U UIdRen) •◦U σ
+      ≡⟨ ••◦U (UKeep ξ) (UDrop UIdRen) σ ⟩
+    UKeep ξ •◦U UDrop UIdRen •◦U σ ∎)
+    (renUnty (UDrop UIdRen) (renUnty ξ e)
+      ≡⟨ renUnty• (UDrop UIdRen) ξ e ⟩
+    renUnty (UDrop UIdRen •U ξ) e
+      ≡⟨ (cong (λ x → renUnty x e) $ UDrop• UIdRen ξ) ⟩
+    renUnty (UDrop ξ) e
+      ≡⟨ renUnty-resp-≈ᵣ (UDrop≈ᵣ $ ≈ᵣ-sym $ •U-idᵣ-≈ᵣ ξ IdRen≈ᵣ) e ⟩
+    renUnty (UDrop (ξ •U UIdRen)) e
+      ≡⟨ (sym $ renUnty• (UKeep ξ) (UDrop UIdRen) e) ⟩
+    renUnty (UKeep ξ) (renUnty (UDrop UIdRen) e) ∎) 
+
+UKeep•◦ : (ξ : URen) (σ : USub) → UKeepSub (ξ •◦U σ) ≡ UKeep ξ •◦U UKeepSub σ
+UKeep•◦ ξ σ = cong (_▹ var zero) (UKeep•◦UDrop ξ σ)
+
+UKeep•◦* : (ξ : URen) (σ : USub) (n : ℕ) →
+            UKeepSub* (ξ •◦U σ) n ≡ UKeep* ξ n •◦U UKeepSub* σ n
+UKeep•◦* ξ σ zero = refl
+UKeep•◦* ξ σ (suc n) =
+  UKeepSub (UKeepSub* (ξ •◦U σ) n)
+    ≡⟨ (cong UKeepSub $ UKeep•◦* ξ σ n) ⟩
+  UKeepSub (UKeep* ξ n •◦U UKeepSub* σ n)
+    ≡⟨ UKeep•◦ (UKeep* ξ n) (UKeepSub* σ n) ⟩
+  UKeep (UKeep* ξ n) •◦U UKeepSub (UKeepSub* σ n) ∎
+
 -- Type erasure distributes over the action of substitution
 eraseVar-distr-sub : ∀{Γ1 Γ2 t} (σ : Sub Γ1 Γ2) (x : Var Γ1 t) →
                     erase (subVar σ x) ≡ subVarUnty (eraseSub σ) (eraseVar x)
 eraseVar-distr-sub (σ ▸ e) V0 = refl
 eraseVar-distr-sub (σ ▸ e) (VS x) = eraseVar-distr-sub σ x
 
-eraseSub-distr-•◦ : ∀{Γ1 Γ2 Γ3 t} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) (x : Var Γ1 t) →
-              subVarUnty (eraseSub (ξ •◦ σ)) (eraseVar x) ≡
-              renUnty (eraseRen ξ) (subVarUnty (eraseSub σ) (eraseVar x))
-eraseSub-distr-•◦ ξ (σ ▸ e) V0 = erase-distr-ren ξ e
-eraseSub-distr-•◦ ξ (σ ▸ e) (VS x) = eraseSub-distr-•◦ ξ σ x
+eraseVar-distr-•◦ : ∀{Γ1 Γ2 Γ3 t} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) (x : Var Γ1 t) →
+                    subVarUnty (eraseSub (ξ •◦ σ)) (eraseVar x) ≡
+                    renUnty (eraseRen ξ) (subVarUnty (eraseSub σ) (eraseVar x))
+eraseVar-distr-•◦ ξ (σ ▸ e) V0 = erase-distr-ren ξ e
+eraseVar-distr-•◦ ξ (σ ▸ e) (VS x) = eraseVar-distr-•◦ ξ σ x
 
 erase-distr-sub : ∀{Γ1 Γ2 t} (σ : Sub Γ1 Γ2) (e : Tm Γ1 t) →
                  erase (sub σ e) ≡ subUnty (eraseSub σ) (erase e)
@@ -533,6 +671,99 @@ eraseVec-distr-sub σ (_∷_ {Δ} {t} {Σ} e es) =
       ≡⟨ cong (flip subUnty (erase e)) (eraseSub-distr-KeepSub* σ Δ) ⟩
     subUnty (UKeepSub* (eraseSub σ) (length Δ)) (erase e) ∎)
     (eraseVec-distr-sub σ es)
+
+subVar•◦U : ∀{Γ1 Γ2 Γ3 κ} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) (x : Var Γ1 κ) →
+            renUnty (eraseRen ξ) (subVarUnty (eraseSub σ) (eraseVar x)) ≡
+            subVarUnty (eraseRen ξ •◦U eraseSub σ) (eraseVar x)
+subVar•◦U ξ ε ()
+subVar•◦U ξ (σ ▸ e) V0 = refl
+subVar•◦U ξ (σ ▸ e) (VS x) = subVar•◦U ξ σ x
+
+sub•◦U : ∀{Γ1 Γ2 Γ3 κ} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) (e : Tm Γ1 κ) →
+          renUnty (eraseRen ξ) (subUnty (eraseSub σ) (erase e)) ≡
+          subUnty (eraseRen ξ •◦U eraseSub σ) (erase e)
+subVec•◦U : ∀{Γ1 Γ2 Γ3 Σ} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2) (es : TmVec Γ1 Σ) →
+          renVecUnty (eraseRen ξ) (subVecUnty (eraseSub σ) (eraseVec es)) ≡
+          subVecUnty (eraseRen ξ •◦U eraseSub σ) (eraseVec es)
+          
+sub•◦U ξ σ (var x) = subVar•◦U ξ σ x
+sub•◦U ξ σ (constr s es) = cong (constr s) (subVec•◦U ξ σ es)
+
+subVec•◦U ξ σ [] = refl
+subVec•◦U ξ σ (_∷_ {Δ = Δ} e es) =
+  cong₃ eraseCons
+    (renUnty (UKeep* (eraseRen ξ) (length Δ))
+      (subUnty (UKeepSub* (eraseSub σ) (length Δ)) (erase e))
+      ≡⟨ cong₂ (λ x y → renUnty x (subUnty y (erase e)))
+          (sym $ eraseRen-distr-Keep* ξ Δ)
+          (sym $ eraseSub-distr-KeepSub* σ Δ) ⟩
+    renUnty (eraseRen (Keep* ξ Δ))
+      (subUnty (eraseSub (KeepSub* σ Δ)) (erase e))
+      ≡⟨ sub•◦U (Keep* ξ Δ) (KeepSub* σ Δ) e ⟩
+    subUnty (eraseRen (Keep* ξ Δ) •◦U eraseSub (KeepSub* σ Δ)) (erase e)
+      ≡⟨ cong₂ (λ x y → subUnty (x •◦U y) (erase e))
+          (eraseRen-distr-Keep* ξ Δ)
+          (eraseSub-distr-KeepSub* σ Δ) ⟩
+    subUnty (UKeep* (eraseRen ξ) (length Δ) •◦U UKeepSub* (eraseSub σ) (length Δ)) (erase e)
+      ≡⟨ (cong (λ x → subUnty x (erase e)) $ sym $ UKeep•◦* (eraseRen ξ) (eraseSub σ) (length Δ)) ⟩
+    subUnty (UKeepSub* (eraseRen ξ •◦U eraseSub σ) (length Δ)) (erase e) ∎)
+    refl (subVec•◦U ξ σ es)
+
+sub•◦UH : ∀{Γ1 Γ1' Γ2 Γ2' Γ3 κ} (ξ : Ren Γ2 Γ3) (σ : Sub Γ1 Γ2') (e : Tm Γ1' κ) →
+          Γ2' ≡ Γ2 → Γ1' ≡ Γ1 →
+          renUnty (eraseRen ξ) (subUnty (eraseSub σ) (erase e)) ≡
+          subUnty (eraseRen ξ •◦U eraseSub σ) (erase e)
+sub•◦UH ξ σ e refl refl = sub•◦U ξ σ e
+
+subVar◦•U : ∀{Γ1 Γ2 Γ3 κ} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) (x : Var Γ1 κ) →
+            subVarUnty (eraseSub σ) (renVarUnty (eraseRen ξ) (eraseVar x)) ≡
+            subVarUnty (eraseSub σ ◦•U eraseRen ξ) (eraseVar x)
+subVar◦•U (σ ▸ e) (Keep ξ) V0 = refl
+subVar◦•U (σ ▸ e) (Keep ξ) (VS x) = subVar◦•U σ ξ x
+subVar◦•U (σ ▸ e) (Drop ξ) x = subVar◦•U σ ξ x
+
+sub◦•U : ∀{Γ1 Γ2 Γ3 κ} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) (e : Tm Γ1 κ) →
+          subUnty (eraseSub σ) (renUnty (eraseRen ξ) (erase e)) ≡
+          subUnty (eraseSub σ ◦•U eraseRen ξ) (erase e)
+subVec◦•U : ∀{Γ1 Γ2 Γ3 Σ} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2) (es : TmVec Γ1 Σ) →
+            subVecUnty (eraseSub σ) (renVecUnty (eraseRen ξ) (eraseVec es)) ≡
+            subVecUnty (eraseSub σ ◦•U eraseRen ξ) (eraseVec es)
+
+sub◦•U σ ξ (var x) = subVar◦•U σ ξ x
+sub◦•U σ ξ (constr s es) = cong (constr s) (subVec◦•U σ ξ es)
+
+subVec◦•U σ ξ [] = refl
+subVec◦•U σ ξ (_∷_ {Δ = Δ} e es) =
+  cong₃ eraseCons
+    (subUnty (UKeepSub* (eraseSub σ) (length Δ))
+        (renUnty (UKeep* (eraseRen ξ) (length Δ)) (erase e))
+      ≡⟨ cong₂ (λ x y → subUnty x (renUnty y (erase e)))
+          (sym $ eraseSub-distr-KeepSub* σ Δ)
+          (sym $ eraseRen-distr-Keep* ξ Δ) ⟩
+    subUnty (eraseSub (KeepSub* σ Δ))
+        (renUnty (eraseRen (Keep* ξ Δ)) (erase e))
+      ≡⟨ sub◦•U (KeepSub* σ Δ) (Keep* ξ Δ) e ⟩
+    subUnty (eraseSub (KeepSub* σ Δ) ◦•U eraseRen (Keep* ξ Δ)) (erase e)
+      ≡⟨ (cong (λ x → subUnty x (erase e)) $
+            sym $ erase-distr-◦• (KeepSub* σ Δ) (Keep* ξ Δ)) ⟩
+    subUnty (eraseSub (KeepSub* σ Δ ◦• Keep* ξ Δ)) (erase e)
+      ≡⟨ (cong (λ x → subUnty (eraseSub x) (erase e)) $
+            sym $ Keep*◦• σ ξ Δ) ⟩
+    subUnty (eraseSub (KeepSub* (σ ◦• ξ) Δ)) (erase e)
+      ≡⟨ (cong (λ x → subUnty x (erase e)) $
+            eraseSub-distr-KeepSub* (σ ◦• ξ) Δ) ⟩
+    subUnty (UKeepSub* (eraseSub (σ ◦• ξ)) (length Δ)) (erase e)
+      ≡⟨ (cong (λ x → subUnty (UKeepSub* x (length Δ)) (erase e)) $
+          erase-distr-◦• σ ξ) ⟩
+    subUnty (UKeepSub* (eraseSub σ ◦•U eraseRen ξ) (length Δ)) (erase e) ∎)
+    refl
+    (subVec◦•U σ ξ es)
+
+sub◦•UH : ∀{Γ1 Γ1' Γ2 Γ2' Γ3 κ} (σ : Sub Γ2 Γ3) (ξ : Ren Γ1 Γ2') (e : Tm Γ1' κ) →
+          Γ1 ≡ Γ1' → Γ2 ≡ Γ2' →
+          subUnty (eraseSub σ) (renUnty (eraseRen ξ) (erase e)) ≡
+          subUnty (eraseSub σ ◦•U eraseRen ξ) (erase e)
+sub◦•UH σ ξ e refl refl = sub◦•U σ ξ e
 
 -- Type erasure is invariant under propositional equality substitution
 subst₂-eraseVar : ∀{Γ1 Γ2 t1 t2}
@@ -780,3 +1011,4 @@ untyped≅inherent = Σ-Prop-≅
   (λ e → erase∘toTm)
   ⊢erase
   toTm∘⊢erase
+   

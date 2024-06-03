@@ -79,8 +79,7 @@ subTyp : ∀{Γ1 Γ2} → TySub Γ1 Γ2 → Typ Γ1 → Typ Γ2
 subTyp σ (κ , t) = κ , tySub σ t
 
 subCtx : ∀{Γ1 Γ2} → TySub Γ1 Γ2 → Ctx Γ1 → Ctx Γ2
-subCtx σ [] = []
-subCtx σ (t ∷ Δ) = subTyp σ t ∷ subCtx σ Δ
+subCtx σ Δ = map (subTyp σ) Δ
 
 subCtx++ : ∀{Γ1 Γ2} {σ : TySub Γ1 Γ2} (Δ1 Δ2 : Ctx Γ1) →
             subCtx σ (Δ1 ++ Δ2) ≡ subCtx σ Δ1 ++ subCtx σ Δ2
