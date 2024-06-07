@@ -232,6 +232,10 @@ ren ξ (constr s ts) = constr s (renVec ξ ts)
 renVec ξ [] = []
 renVec {Σ = (Δ , t) ∷ Σ} ξ (e ∷ es) = ren (Keep* ξ Δ) e ∷ renVec ξ es
 
+-- Weakening
+wk : ∀{Γ t s} → Tm Γ t → Tm (s ∷ Γ) t
+wk e = ren (Drop IdRen) e
+
 renVarId : ∀{Γ t} (x : Var Γ t) → renVar IdRen x ≡ x
 renVarId V0 = refl
 renVarId (VS x) = cong VS (renVarId x)

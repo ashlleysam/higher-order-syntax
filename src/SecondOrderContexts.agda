@@ -37,7 +37,7 @@ open import SecondOrderLanguage ⅀ public
           substTy-Var to substKnd-TyVar; substCtx-Constr to substCtx-TyConstr;
           substTy-Constr to substKnd-TyConstr; substNil to substTyNil; substCons to substTyCons;
           substTy-ren to substKnd-tyRen; substCtx-ren to substCtx-tyRen; subCtx-Keep to subCtx-TyKeep;
-          subCtx-Drop to subCtx-TyDrop; _◦_ to _◦ₜ_)
+          subCtx-Drop to subCtx-TyDrop; _◦_ to _◦ₜ_; wk to tyWk)
 
 -- Types of any kind
 Typ : KndCtx → Set
