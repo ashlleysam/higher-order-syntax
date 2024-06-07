@@ -114,6 +114,10 @@ renVec ξ [] = []
 renVec {Γ} {Δ1} {Δ2} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
   ren (Keep* (KeepTy* ξ Γ') Δ') e ∷ renVec ξ es
 
+-- Weakening
+wk : ∀{Γ Δ s t} → Tm Γ Δ t → Tm Γ (s ∷ Δ) t
+wk e = ren (Drop IdRen) e
+
 -- Rename the types in a variable
 renVarTy : ∀{Γ1 Γ2 Δ t} (ξ : TyRen Γ1 Γ2) → Var Γ1 Δ t → Var Γ2 (renCtx ξ Δ) (renTyp ξ t)
 renVarTy ξ V0 = V0 
@@ -155,6 +159,10 @@ renVecTy {Γ1} {Γ2} {Δ} {(Γ' , Δ' , t) ∷ Θ} ξ (e ∷ es) =
           ≡⟨ renCtx• (TyDrop* TyIdRen Γ') ξ Δ ⟩
         renCtx (TyDrop* TyIdRen Γ') (renCtx ξ Δ) ∎) ⟩
     renCtx (TyKeep* ξ Γ') Δ' ++ renCtx (TyDrop* TyIdRen Γ') (renCtx ξ Δ) ∎
+
+-- Weakening types in a term
+wkTy : ∀{Γ Δ κ t} → Tm Γ Δ t → Tm (κ ∷ Γ) (renCtx (TyDrop TyIdRen) Δ) (renTyp (TyDrop TyIdRen) t)
+wkTy e = renTy (TyDrop TyIdRen) e
 
 ------------------
 -- SUBSTITUTION --
