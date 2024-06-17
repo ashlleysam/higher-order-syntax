@@ -4,21 +4,78 @@ open import Level renaming (_⊔_ to ℓ-max; suc to ℓ-suc; zero to ℓ-zero)
 open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
-open import Data.Product renaming (proj₁ to fst; proj₂ to snd)
+open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
 open import Data.Empty
 open import Data.Unit
 open import Data.List
+open import Data.Nat
 open import Function
 
 open ≡-Reasoning
 
 module Common.Equality where
 
+ListPath : {A : Set} → List A → List A → Set
+ListPath [] [] = ⊤
+ListPath [] (y ∷ ys) = ⊥
+ListPath (x ∷ xs) [] = ⊥
+ListPath (x ∷ xs) (y ∷ ys) = x ≡ y × ListPath xs ys
+
+evalListPath : {A : Set} {xs ys : List A} →
+               ListPath xs ys → xs ≡ ys
+evalListPath {xs = []} {[]} tt = refl
+evalListPath {xs = x ∷ xs} {.x ∷ ys} (refl , p) =
+  cong (x ∷_) $ evalListPath p
+
+{-
+"Equivalent below" equivalence relation between functions
+
+f1 and f2 are equivalent below n if
+f1 x ≡ f2 x for all x < n
+
+We write it in a more explicit form so it's
+easier to work with
+-}
+≗Below : {A : Set} → ℕ → (ℕ → A) → (ℕ → A) → Set
+≗Below zero f1 f2 = ⊤
+≗Below (suc n) f1 f2 =
+  f1 zero ≡ f2 zero × ≗Below n (f1 ∘ suc) (f2 ∘ suc)
+
+∘-≗Below : ∀{n} {A : Set} {B : Set}
+            {f1 f2 : ℕ → A}
+            (g : A → B) →
+            ≗Below n f1 f2 →
+            ≗Below n (g ∘ f1) (g ∘ f2)
+∘-≗Below {n = zero} g f1≗f2 = tt
+∘-≗Below {n = suc n} g (f1₀≡f2₀ , f1∘suc≗f2∘suc) =
+  cong g f1₀≡f2₀ , ∘-≗Below g f1∘suc≗f2∘suc
+
+_∈Image_ : ∀{a b} {A : Set a} {B : Set b}
+           (y : B) (f : A → B) → Set (ℓ-max a b)
+y ∈Image f = Σ[ x ∈ _ ] (f x ≡ y)
+
+_∉Image_ : ∀{a b} {A : Set a} {B : Set b}
+           (y : B) (f : A → B) → Set (ℓ-max a b)
+y ∉Image f = ¬ (y ∈Image f)
+
 nil≢cons : ∀{a} {A : Set a} {x : A} {xs : List A} → [] ≢ x ∷ xs
 nil≢cons ()
 
 cons≢nil : ∀{a} {A : Set a} {x : A} {xs : List A} → x ∷ xs ≢ []
 cons≢nil ()
+
+map-const : ∀{a b} {A : Set a} {B : Set b}
+            (y : B) (xs : List A) →
+            map (λ _ → y) xs ≡ replicate (length xs) y
+map-const y [] = refl
+map-const y (x ∷ xs) = cong (y ∷_) (map-const y xs)            
+
+replicate-++ : ∀{a} {A : Set a}
+              (m n : ℕ) (x : A) →
+              replicate (m + n) x ≡ 
+              replicate m x ++ replicate n x
+replicate-++ zero n x = refl
+replicate-++ (suc m) n x = cong (x ∷_) (replicate-++ m n x)            
 
 -- Cubical syntax for transitivity
 infixr 30 _∙_
@@ -109,9 +166,21 @@ subst₂-reflᵣ : ∀{a b ℓ} {A : Set a} {x1 x2 : A} {B : Set b} {y : B}
 subst₂-reflᵣ P refl v = refl
 
 -- Prove two pairs are equal by proving their elements are equal
-Σ-≡-→-≡-Σ : ∀{a b} {A : Set a} {B : A → Set b} {x1 x2 : A} {y1 : B x1} {y2 : B x2} →
+Σ-≡-→-≡-Σ : ∀{a b} {A : Set a} {B : A → Set b}
+            {x1 x2 : A} {y1 : B x1} {y2 : B x2} →
             (p : x1 ≡ x2) → subst B p y1 ≡ y2 → (x1 , y1) ≡ (x2 , y2)
 Σ-≡-→-≡-Σ refl refl = refl
+
+subst-const : ∀{a b} {A : Set a} {B : Set b}
+              {x y : A} (p : x ≡ y) (b : B) →
+              subst (λ x → B) p b ≡ b
+subst-const refl b = refl
+
+subst-cong : ∀{a b c} {A : Set a} {B : Set b}
+              (C : B → Set c) (f : A → B)
+              {x1 x2 : A} (p : x1 ≡ x2) (y : C (f x1)) →
+              subst C (cong f p) y ≡ subst (C ∘ f) p y
+subst-cong C f refl y = refl
 
 subst-× : ∀{a b d} {D : Set d}
           (A : D → Set a) (B : D → Set b)
@@ -120,6 +189,20 @@ subst-× : ∀{a b d} {D : Set d}
           ≡ (subst A p Ax , subst B p Bx)
 subst-× A B refl Ax Bx = refl
 
+subst-fst : ∀{a b d} {D : Set d}
+            (A : D → Set a) (B : D → Set b)
+            {x y : D} (p : x ≡ y) (ABx : A x × B x) →
+            subst (λ x → A x × B x) p ABx .fst
+            ≡ subst A p (ABx .fst)
+subst-fst A B refl (Ax , Bx) = refl
+
+subst-snd : ∀{a b d} {D : Set d}
+            (A : D → Set a) (B : D → Set b)
+            {x y : D} (p : x ≡ y) (ABx : A x × B x) →
+            subst (λ x → A x × B x) p ABx .snd
+            ≡ subst B p (ABx .snd)
+subst-snd A B refl (Ax , Bx) = refl
+
 subst-Σ-fst : ∀{a b d} {D : Set d}
               (A : D → Set a) (B : (d : D) → A d → Set b)
               {x y : D} (p : x ≡ y) (Ax : A x) (Bx : B x Ax) →
@@ -127,17 +210,21 @@ subst-Σ-fst : ∀{a b d} {D : Set d}
               ≡ subst A p Ax
 subst-Σ-fst A B refl Ax Bx = refl
 
+subst-Σ-snd : ∀{a b c} {A : Set a} {B : Set b}
+              (C : A → B → Set c)
+              {x1 x2 : A} (p : x1 ≡ x2) (s : Σ[ y ∈ B ] C x1 y) →
+              subst (λ x → Σ[ y ∈ B ] C x y) p s .snd
+              ≡ subst (C x2)
+                  (sym (subst-Σ-fst (λ _ → B) C p (s .fst) (s .snd) ∙ subst-const p (s .fst)))
+                  (subst (λ x → C x (s .fst)) p (s .snd))
+subst-Σ-snd C refl (y , Cxy) = refl
+
 subst-≡ : ∀{a b} {A : Set a} {B : Set b}
           (f g : A → B)
           {x y : A} (p : x ≡ y) (q : f x ≡ g x) →
           subst (λ x → f x ≡ g x) p q
           ≡ sym (cong f p) ∙ q ∙ cong g p
 subst-≡ f g refl q = sym $ •-idᵣ q
-
-subst-const : ∀{a b} {A : Set a} {B : Set b}
-              {x y : A} (p : x ≡ y) (b : B) →
-              subst (λ x → B) p b ≡ b
-subst-const refl b = refl
 
 -- Custom equational reasoning for functions
 module FunExt {a b} {A : Set a} {B : Set b} where
@@ -173,3 +260,33 @@ open FunExt public
 ≡⇒≗ : ∀{a b} {A : Set a} {B : Set b} {f g : A → B} →
         f ≡ g → f ≗ g
 ≡⇒≗ p x = cong (λ y → y x) p
+
+-- Higher paths
+PathP : ∀{a b} {A : Set a} (B : A → Set b)
+        {x1 x2 : A} (p : x1 ≡ x2)
+        (y1 : B x1) (y2 : B x2) → Set b
+PathP B p y1 y2 = subst B p y1 ≡ y2        
+
+congP : ∀{a b} {A : Set a} {B : A → Set b}
+        (f : (x : A) → B x) {x1 x2 : A} (p : x1 ≡ x2) →
+        PathP B p (f x1) (f x2)
+congP f refl = refl
+
+apP : ∀{a b c} {A : Set a} {B : A → Set b} {C : A → Set c}
+      {x1 x2 : A} {p : x1 ≡ x2}
+      {f : B x1 → C x1} {g : B x2 → C x2}
+      (q : PathP (λ x → B x → C x) p f g)
+      (y : B x1) →
+      PathP C p (f y) (g (subst B p y))
+apP {p = refl} refl y = refl
+
+congP′ : ∀{a b c} {A : Set a} (B : A → Set b) {C : Set c}
+        (f : {x : A} → B x → C)
+        {x1 x2 : A} (p : x1 ≡ x2)
+        {y1 : B x1} {y2 : B x2} (q : PathP B p y1 y2) →
+        f y1 ≡ f y2
+congP′ B f refl refl = refl
+
+Σ-PathP-→-≡-Σ : ∀{a b} {A : Set a} {B : A → Set b} {x1 x2 : A} {y1 : B x1} {y2 : B x2} →
+                (p : x1 ≡ x2) → PathP B p y1 y2 → (x1 , y1) ≡ (x2 , y2)
+Σ-PathP-→-≡-Σ refl refl = refl
