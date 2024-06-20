@@ -27,4 +27,16 @@ map-AllElems : ∀{a b} {A : Set a} {xs : List A} {B : Set b}
                AllElems P xs →
                AllElems Q (map f xs)
 map-AllElems {xs = []} P Q f P⇒Q∘f tt = tt
-map-AllElems {xs = x ∷ xs} P Q f P⇒Q∘f (Px , Pxs) = P⇒Q∘f x Px , map-AllElems P Q f P⇒Q∘f Pxs
+map-AllElems {xs = x ∷ xs} P Q f P⇒Q∘f (Px , Pxs) =
+  P⇒Q∘f x Px ,
+  map-AllElems P Q f P⇒Q∘f Pxs
+
+map-AllElems⁻ : ∀{a b} {A : Set a} {xs : List A} {B : Set b}
+               (P : A → Set) (Q : B → Set) (f : A → B) →
+               ((x : A) → Q (f x) → P x) →
+               AllElems Q (map f xs) →
+               AllElems P xs
+map-AllElems⁻ {xs = []} P Q f Q∘f⇒P tt = tt
+map-AllElems⁻ {xs = x ∷ xs} P Q f Q∘f⇒P (Qfx , Qfxs) =
+  Q∘f⇒P x Qfx ,
+  map-AllElems⁻ P Q f Q∘f⇒P Qfxs

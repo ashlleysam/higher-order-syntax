@@ -322,6 +322,17 @@ then e⟨ξ1⟩ ≡ e⟨ξ2⟩.
     (⊢renTy-≗TyRen (Keep*-≗TyRen ξ1≗ξ2 Δ) ⊢t)
     (⊢renTyVec-≗TyRen ξ1≗ξ2 ⊢ts)
 
+⊢renCtx-≗TyRen : ∀{Γ ξ1 ξ2 Δ} →
+                  ≗TyRen Γ ξ1 ξ2 →
+                  Γ ⊢ctx Δ →
+                  renCtx ξ1 Δ ≡ renCtx ξ2 Δ
+⊢renCtx-≗TyRen {Δ = []} ξ1≗ξ2 tt = refl
+⊢renCtx-≗TyRen {Δ = (κ , t) ∷ Δ} ξ1≗ξ2 (⊢t , ⊢Δ) =
+  cong₂ (λ x y → (κ , x) ∷ y)
+    (⊢renTy-≗TyRen ξ1≗ξ2 ⊢t)
+    (⊢renCtx-≗TyRen ξ1≗ξ2 ⊢Δ)
+
+
 {-
 Well-kinded types in an empty context have no
 variables, so renaming has no effect on them
@@ -359,6 +370,64 @@ variables, so renaming has no effect on them
 ⊢renBnds {Bs = []} ⊢ξ tt = tt
 ⊢renBnds {Bs = B ∷ Bs} ⊢ξ (⊢B , ⊢Bs) =
   ⊢renBnd ⊢ξ ⊢B , ⊢renBnds ⊢ξ ⊢Bs
+
+TYREN⁻ : Ren → KndCtx → KndCtx → Set
+TYREN⁻ ξ Γ1 Γ2 = ∀{x κ} → Γ2 ⊢ₜvar ξ x ∶ κ → Γ1 ⊢ₜvar x ∶ κ
+
+TYREN⁻-ext : ∀{Γ1 Γ2 ξ1 ξ2} → ξ1 ≗ ξ2 → TYREN⁻ ξ1 Γ1 Γ2 → TYREN⁻ ξ2 Γ1 Γ2
+TYREN⁻-ext {Γ2 = Γ2} p ⊢ξ {x} {κ} ⊢ξx =
+  ⊢ξ $ subst (λ y → Γ2 ⊢ₜvar y ∶ κ) (sym $ p x) ⊢ξx
+
+⊢•ₜ⁻ : ∀{Γ1 Γ2 Γ3 ξ1 ξ2} → TYREN⁻ ξ1 Γ2 Γ3 → TYREN⁻ ξ2 Γ1 Γ2 → TYREN⁻ (ξ1 • ξ2) Γ1 Γ3
+⊢•ₜ⁻ ⊢ξ1 ⊢ξ2 = ⊢ξ2 ∘ ⊢ξ1
+
+⊢TyIdRen⁻ : ∀{Γ} → TYREN⁻ id Γ Γ
+⊢TyIdRen⁻ ⊢x = ⊢x
+
+⊢TyKeep⁻ : ∀{Γ1 Γ2 ξ κ} → TYREN⁻ ξ Γ1 Γ2 → TYREN⁻ (Keep ξ) (κ ∷ Γ1) (κ ∷ Γ2)
+⊢TyKeep⁻ ⊢ξ {zero}  ⊢ₜ0 = ⊢ₜ0
+⊢TyKeep⁻ ⊢ξ {suc x} {κ} (⊢ₜS ⊢ξx) = ⊢ₜS (⊢ξ ⊢ξx)
+
+⊢TyKeep⁻* : ∀{Γ1 Γ2 ξ} → TYREN⁻ ξ Γ1 Γ2 → (Γ' : KndCtx) →
+            TYREN⁻ (Keep* ξ (length Γ')) (Γ' ++ Γ1) (Γ' ++ Γ2)
+⊢TyKeep⁻* ⊢ξ [] = ⊢ξ
+⊢TyKeep⁻* ⊢ξ (κ ∷ Γ') = ⊢TyKeep⁻ (⊢TyKeep⁻* ⊢ξ Γ')
+
+⊢TyDrop⁻ : ∀{Γ1 Γ2 ξ κ} → TYREN⁻ ξ Γ1 Γ2 → TYREN⁻ (Drop ξ) Γ1 (κ ∷ Γ2)
+⊢TyDrop⁻ ⊢ξ (⊢ₜS ⊢ξx) = ⊢ξ ⊢ξx
+
+⊢TyDrop⁻* : ∀{Γ1 Γ2 ξ} → TYREN⁻ ξ Γ1 Γ2 → (Γ' : KndCtx) →
+            TYREN⁻ (Drop* ξ (length Γ')) Γ1 (Γ' ++ Γ2)
+⊢TyDrop⁻* ⊢ξ [] = ⊢ξ
+⊢TyDrop⁻* ⊢ξ (κ ∷ Γ') = ⊢TyDrop⁻ (⊢TyDrop⁻* ⊢ξ Γ')
+
+⊢renTy⁻ : ∀{Γ1 Γ2 ξ e κ} → TYREN⁻ ξ Γ1 Γ2 → Γ2 ⊢ₜ renTy ξ e ∶ κ → Γ1 ⊢ₜ e ∶ κ
+⊢renTyVec⁻ : ∀{Γ1 Γ2 ξ es Σ} → TYREN⁻ ξ Γ1 Γ2 → Γ2 ⊢ₜvec renTyVec ξ es ∶ Σ → Γ1 ⊢ₜvec es ∶ Σ
+
+⊢renTy⁻ {e = tyVar x} ⊢ξ (⊢ₜvar ⊢x) = ⊢ₜvar (⊢ξ ⊢x)
+⊢renTy⁻ {e = tyConstr s ts} ⊢ξ (⊢ₜtyConstr .s ⊢ts) =
+  ⊢ₜtyConstr s (⊢renTyVec⁻ ⊢ξ ⊢ts)
+
+⊢renTyVec⁻ {es = []} ⊢ξ ⊢ₜ[] = ⊢ₜ[]
+⊢renTyVec⁻ {es = (t , .(length Γ')) ∷ ts} ⊢ξ (_⊢ₜ∷_ {Δ = Γ'} ⊢t ⊢ₜes) =
+  ⊢renTy⁻ (⊢TyKeep⁻* ⊢ξ Γ') ⊢t ⊢ₜ∷ ⊢renTyVec⁻ ⊢ξ ⊢ₜes
+
+⊢renTyp⁻ : ∀{Γ1 Γ2 ξ t} → TYREN⁻ ξ Γ1 Γ2 → Γ2 ⊢typ renTyp ξ t → Γ1 ⊢typ t
+⊢renTyp⁻ ⊢ξ ⊢t = ⊢renTy⁻ ⊢ξ ⊢t
+
+⊢renCtx⁻ : ∀{Γ1 Γ2 ξ Δ} → TYREN⁻ ξ Γ1 Γ2 → Γ2 ⊢ctx renCtx ξ Δ → Γ1 ⊢ctx Δ
+⊢renCtx⁻ {Δ = []} ⊢ξ tt = tt
+⊢renCtx⁻ {Δ = t ∷ Δ} ⊢ξ (⊢t , ⊢Δ) = ⊢renTyp⁻ ⊢ξ ⊢t , ⊢renCtx⁻ ⊢ξ ⊢Δ
+
+⊢renBnd⁻ : ∀{Γ1 Γ2 ξ B} → TYREN⁻ ξ Γ1 Γ2 → Γ2 ⊢bnd renBinder ξ B → Γ1 ⊢bnd B
+⊢renBnd⁻ {B = Γ' , Δ , t} ⊢ξ (⊢Δ , ⊢t) =
+  ⊢renCtx⁻ (⊢TyKeep⁻* ⊢ξ Γ') ⊢Δ ,
+  ⊢renTyp⁻ (⊢TyKeep⁻* ⊢ξ Γ') ⊢t
+
+⊢renBnds⁻ : ∀{Γ1 Γ2 ξ Bs} → TYREN⁻ ξ Γ1 Γ2 → Γ2 ⊢bnds renBinders ξ Bs → Γ1 ⊢bnds Bs
+⊢renBnds⁻ {Bs = []} ⊢ξ tt = tt
+⊢renBnds⁻ {Bs = B ∷ Bs} ⊢ξ (⊢B , ⊢Bs) =
+  ⊢renBnd⁻ ⊢ξ ⊢B , ⊢renBnds⁻ ⊢ξ ⊢Bs
 
 -------------------------------------------
 -- SUBSTITUTION WELL-FORMEDNESS JUDGMENT --
