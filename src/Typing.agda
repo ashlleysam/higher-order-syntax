@@ -43,6 +43,30 @@ data _⨾_⊢var_∶_ : KndCtx → Ctx → ℕ → Typ → Set where
 
 varTyped = _⨾_⊢var_∶_
 
+¬[]⊢x : ∀{Γ x t} → Γ ⨾ [] ⊢var x ∶ t → ⊥
+¬[]⊢x ()
+
+⊢0-elim : ∀{Γ Δ t} →
+          (⊢x : Γ ⨾ Δ ⊢var 0 ∶ t) →
+          Σ[ Δ' ∈ _ ]
+          Σ[ ⊢Δ' ∈ Γ ⊢ctx Δ' ]
+          Σ[ ⊢t ∈ Γ ⊢typ t ]
+          Σ[ p ∈ Δ ≡ t ∷ Δ' ]
+          subst (λ x → Γ ⨾ x ⊢var 0 ∶ t) p ⊢x ≡ ⊢0 ⊢Δ' ⊢t
+⊢0-elim {Γ} {t ∷ Δ} {t} (⊢0 ⊢Δ ⊢t) =
+  Δ , ⊢Δ , ⊢t , refl , refl
+
+⊢S-elim : ∀{Γ Δ t x} →
+          (⊢Sx : Γ ⨾ Δ ⊢var suc x ∶ t) →
+          Σ[ t' ∈ _ ]
+          Σ[ Δ' ∈ _ ]
+          Σ[ ⊢t' ∈ Γ ⊢typ t' ]
+          Σ[ ⊢x ∈ Γ ⨾ Δ' ⊢var x ∶ t ]
+          Σ[ p ∈ Δ ≡ t' ∷ Δ' ]
+          subst (λ y → Γ ⨾ y ⊢var suc x ∶ t) p ⊢Sx ≡ ⊢S ⊢x ⊢t'
+⊢S-elim {Γ} {t' ∷ Δ} {t} {x} (⊢S {t2 = t'} ⊢x ⊢t') =
+  t' , Δ , ⊢t' , ⊢x , refl , refl
+
 ⊢renTypVar : ∀{ξ Γ1 Γ2 Δ t x} →
               TYREN ξ Γ1 Γ2 →
               Γ1 ⨾ Δ ⊢var x ∶ t →

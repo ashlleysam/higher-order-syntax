@@ -32,11 +32,20 @@ map-AllElems {xs = x ∷ xs} P Q f P⇒Q∘f (Px , Pxs) =
   map-AllElems P Q f P⇒Q∘f Pxs
 
 map-AllElems⁻ : ∀{a b} {A : Set a} {xs : List A} {B : Set b}
-               (P : A → Set) (Q : B → Set) (f : A → B) →
-               ((x : A) → Q (f x) → P x) →
-               AllElems Q (map f xs) →
-               AllElems P xs
+                (P : A → Set) (Q : B → Set) (f : A → B) →
+                ((x : A) → Q (f x) → P x) →
+                AllElems Q (map f xs) →
+                AllElems P xs
 map-AllElems⁻ {xs = []} P Q f Q∘f⇒P tt = tt
 map-AllElems⁻ {xs = x ∷ xs} P Q f Q∘f⇒P (Qfx , Qfxs) =
   Q∘f⇒P x Qfx ,
   map-AllElems⁻ P Q f Q∘f⇒P Qfxs
+
+map-cong-AllElems : ∀{a b} {A : Set a} {xs : List A} {B : Set b}
+                    (P : A → Set) {f g : A → B} →
+                    ((x : A) → P x → f x ≡ g x) →
+                    AllElems P xs →
+                    map f xs ≡ map g xs
+map-cong-AllElems {xs = []} P f≗g tt = refl
+map-cong-AllElems {xs = x ∷ xs} P f≗g (Px , Pxs) =
+  cong₂ _∷_ (f≗g x Px) (map-cong-AllElems P f≗g Pxs)

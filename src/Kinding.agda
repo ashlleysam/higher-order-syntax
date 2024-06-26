@@ -41,8 +41,16 @@ data _⊢ₜvar_∶_ : KndCtx → ℕ → ⅀ .Knd → Set where
 
 varKinded = _⊢ₜvar_∶_
 
-⊢ₜ0-elim : ∀{Γ κ1 κ2} → (κ1 ∷ Γ) ⊢ₜvar 0 ∶ κ2 → κ1 ≡ κ2
-⊢ₜ0-elim ⊢ₜ0 = refl
+¬[]⊢ₜx : ∀{κ x} → [] ⊢ₜvar x ∶ κ → ⊥
+¬[]⊢ₜx ()
+
+⊢ₜ0-elim
+  : ∀{Γ κ} →
+    (⊢x : Γ ⊢ₜvar 0 ∶ κ) →
+    Σ[ Γ' ∈ _ ]
+    Σ[ p ∈ Γ ≡ κ ∷ Γ' ]
+    subst (_⊢ₜvar 0 ∶ κ) p ⊢x ≡ ⊢ₜ0
+⊢ₜ0-elim {κ ∷ Γ} {κ} ⊢ₜ0 = Γ , refl , refl
 
 getTyVar : ∀{Γ x κ} → Γ ⊢ₜvar x ∶ κ → ℕ
 getTyVar {x = x} _ = x
@@ -77,6 +85,27 @@ data _⊢ₜvec_∶_ Γ where
 
 kinded = _⊢ₜ_∶_
 vecKinded = _⊢ₜvec_∶_
+
+⊢ₜtyConstr-elim : ∀{Γ s ts κ} →
+                  (⊢t : Γ ⊢ₜ tyConstr s ts ∶ κ) →
+                  Σ[ ⊢ts ∈ Γ ⊢ₜvec ts ∶ ⅀ .TySig s .fst ]
+                  Σ[ p ∈ κ ≡ ⅀ .TySig s .snd ]
+                  subst (Γ ⊢ₜ tyConstr s ts ∶_) p ⊢t ≡ ⊢ₜtyConstr s ⊢ts
+⊢ₜtyConstr-elim (⊢ₜtyConstr s ⊢ts) = ⊢ts , refl , refl
+
+⊢ₜ∷-elim : ∀{Γ k t ts Σ} →
+          (⊢t∷ts : Γ ⊢ₜvec (t , k) ∷ ts ∶ Σ) →
+          Σ[ Γ' ∈ _ ]
+          Σ[ κ ∈ _ ]
+          Σ[ Σ' ∈ _ ]
+          Σ[ ⊢t ∈ (Γ' ++ Γ) ⊢ₜ t ∶ κ ]
+          Σ[ ⊢ts ∈ Γ ⊢ₜvec ts ∶ Σ' ]
+          Σ[ p ∈ Σ ≡ (Γ' , κ) ∷ Σ' ]
+          Σ[ q ∈ k ≡ length Γ' ]
+          subst₂ (λ x y → Γ ⊢ₜvec (t , x) ∷ ts ∶ y) q p ⊢t∷ts ≡
+          ⊢t ⊢ₜ∷ ⊢ts
+⊢ₜ∷-elim (_⊢ₜ∷_ {Δ = Δ} {κ = κ} {Σ = Σ} ⊢t ⊢ts) =
+  Δ , κ , Σ , ⊢t , ⊢ts , refl , refl , refl
 
 ⊢ₜ∷' : ∀{Γ t t' ts Δ κ Σ k Δ++Γ} →
         Δ++Γ ⊢ₜ t' ∶ κ →
@@ -283,6 +312,15 @@ I.e., all variables in e are below the length of Γ.
 
 ≗TyRen-refl : ∀{Γ ξ} → ≗TyRen Γ ξ ξ
 ≗TyRen-refl ⊢x = refl
+
+≗TyRen-sym : ∀{Γ ξ1 ξ2} → ≗TyRen Γ ξ1 ξ2 → ≗TyRen Γ ξ2 ξ1
+≗TyRen-sym p ⊢x = sym (p ⊢x)
+
+≗TyRen-trans : ∀{Γ ξ1 ξ2 ξ3} →
+              ≗TyRen Γ ξ1 ξ2 →
+              ≗TyRen Γ ξ2 ξ3 →
+              ≗TyRen Γ ξ1 ξ3
+≗TyRen-trans p q ⊢x = p ⊢x ∙ q ⊢x
 
 Keep-≗TyRen : ∀{Γ ξ1 ξ2 κ} →
               ≗TyRen Γ ξ1 ξ2 →
@@ -599,4 +637,4 @@ variables, so substitution has no effect on them
              [] ⊢ₜvec es ∶ Σ →
              subTyVec σ es ≡ es
 ⊢subTyVecε {es} σ ⊢es = 
-  ⊢subTyVec-ext {σ1 = σ} {tyVar} tt ⊢es ∙ subTyVecId es
+  ⊢subTyVec-ext {σ1 = σ} {tyVar} tt ⊢es ∙ subTyVecId es 
