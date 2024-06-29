@@ -637,4 +637,70 @@ variables, so substitution has no effect on them
              [] ⊢ₜvec es ∶ Σ →
              subTyVec σ es ≡ es
 ⊢subTyVecε {es} σ ⊢es = 
-  ⊢subTyVec-ext {σ1 = σ} {tyVar} tt ⊢es ∙ subTyVecId es 
+  ⊢subTyVec-ext {σ1 = σ} {tyVar} tt ⊢es ∙ subTyVecId es
+
+{-
+squash k keeps all variables ≤ k unchanged,
+and decreases by 1 all variables > k, effectively
+removing the variable k
+-}
+squash : ℕ → Ren
+squash zero = pred
+squash (suc k) = Keep (squash k)
+
+Keep*-squash : ∀{i} (k : ℕ) →
+               squash (k + i) ≗
+               Keep* (squash i) k
+Keep*-squash zero x = refl
+Keep*-squash (suc k) = Keep-ext (Keep*-squash k)
+
+-- Removes the given index of a list
+removeIdx : ∀{a} {A : Set a} →
+            List A → ℕ → List A
+removeIdx [] i = []
+removeIdx (x ∷ xs) zero = xs
+removeIdx (x ∷ xs) (suc i) = x ∷ removeIdx xs i
+
+removeIdx-++ : ∀{Γ i} (Γ' : KndCtx) →
+                removeIdx (Γ' ++ Γ) (length Γ' + i) ≡
+                Γ' ++ removeIdx Γ i
+removeIdx-++ [] = refl
+removeIdx-++ (κ ∷ Γ') = cong (κ ∷_) (removeIdx-++ Γ')
+
+{-
+If a variable doesn't occur freely in a type,
+then we can safely remove it from the context
+-}
+⊢squashTyVar
+  : ∀{Γ x κ i} →
+    i ≢ x →
+    Γ ⊢ₜvar x ∶ κ →
+    removeIdx Γ i ⊢ₜvar squash i x ∶ κ
+⊢squashTyVar {κ ∷ Γ} {zero} {i = zero} 0≢0 ⊢x = ⊥-elim $ 0≢0 refl
+⊢squashTyVar {κ ∷ Γ} {zero} {i = suc i} suc-i≢0 ⊢ₜ0 = ⊢ₜ0
+⊢squashTyVar {κ ∷ Γ} {suc x} {i = zero} 0≢suc-x (⊢ₜS ⊢x) = ⊢x
+⊢squashTyVar {κ ∷ Γ} {suc x} {i = suc i} suc-i≢suc-x (⊢ₜS ⊢x) =
+  ⊢ₜS (⊢squashTyVar {Γ} {x} {i = i} (λ i≡x → suc-i≢suc-x (cong suc i≡x)) ⊢x)
+
+⊢squashTy
+  : ∀{Γ t κ i} →
+    notFreeInTy i t →
+    Γ ⊢ₜ t ∶ κ →
+    removeIdx Γ i ⊢ₜ renTy (squash i) t ∶ κ
+⊢squashTyVec
+  : ∀{Γ ts κ i} →
+    notFreeInTyVec i ts →
+    Γ ⊢ₜvec ts ∶ κ →
+    removeIdx Γ i ⊢ₜvec renTyVec (squash i) ts ∶ κ
+
+⊢squashTy i≢x (⊢ₜvar ⊢x) = ⊢ₜvar (⊢squashTyVar i≢x ⊢x)
+⊢squashTy i∉ts (⊢ₜtyConstr s ⊢ts) =
+  ⊢ₜtyConstr s (⊢squashTyVec i∉ts ⊢ts)
+
+⊢squashTyVec tt ⊢ₜ[] = ⊢ₜ[]
+⊢squashTyVec (i∉t , i∉ts) (_⊢ₜ∷_ {t} {Δ = Δ} {κ} ⊢t ⊢ts) =
+  subst₂ (λ x y → x ⊢ₜ y ∶ κ)
+    (removeIdx-++ Δ)
+    (renTy-ext (Keep*-squash (length Δ)) t)
+    (⊢squashTy i∉t ⊢t)
+  ⊢ₜ∷ ⊢squashTyVec i∉ts ⊢ts

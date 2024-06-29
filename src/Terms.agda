@@ -356,19 +356,6 @@ Sub = ℕ → Tm
 ιId : ∀{ξ} → ξ ≗ id → ι ξ ≗ var
 ιId p x = cong var (p x)
 
-_▸_ : Sub → Tm → Sub
-(σ ▸ e) zero = e
-(σ ▸ e) (suc x) = σ x
-
-addSub = _▸_
-
-▸-inj : ∀{σ1 σ2 e1 e2} → σ1 ▸ e1 ≗ σ2 ▸ e2 → σ1 ≗ σ2 × e1 ≡ e2
-▸-inj p = p ∘ suc , p zero
-
-▸-ext : ∀{σ1 σ2 e1 e2} → σ1 ≗ σ2 → e1 ≡ e2 → σ1 ▸ e1 ≗ σ2 ▸ e2
-▸-ext p q zero = q
-▸-ext p q (suc x) = p x
-
 infixr 9 _•◦_
 _•◦_ : Ren → Sub → Sub
 (ξ •◦ σ) x = ren ξ (σ x)

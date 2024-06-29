@@ -415,7 +415,7 @@ REN-ext ξ1≗ξ2 (⊢Drop≗ ξ≗Drop ⊢ξ1' ⊢t) = ⊢Drop≗ (λ x → sym
 data SUB (σ : Sub) (Γ : KndCtx) : Ctx → Ctx → Set where
   ⊢ε : ∀{Δ} (⊢Δ : Γ ⊢ctx Δ) → SUB σ Γ [] Δ
   ⊢▸ : ∀{Δ1 Δ2 e t σ'}
-      (σ≗▸ : σ ≗ addSub σ' e) (⊢σ' : SUB σ' Γ Δ1 Δ2)
+      (σ≗▸ : σ ≗ σ' ▸ e) (⊢σ' : SUB σ' Γ Δ1 Δ2)
       (⊢e : Γ ⨾ Δ2 ⊢ e ∶ t) →
       SUB σ Γ (t ∷ Δ1) Δ2
 

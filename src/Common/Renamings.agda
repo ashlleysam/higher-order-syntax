@@ -1,6 +1,7 @@
 {-# OPTIONS --safe #-}
 
 open import Data.Empty
+open import Data.Product
 open import Data.Nat
 open import Data.Nat.Properties
 open import Relation.Binary.PropositionalEquality
@@ -191,3 +192,19 @@ OPE-refl-≤ (KeepOPE≗ ξ≗Keep ξ-OPE) {suc x} {suc y} ξx≤ξy
 OPE-refl-≤ (DropOPE≗ ξ≗Drop ξ-OPE) {x} {y} ξx≤ξy
   with subst₂ _≤_ (ξ≗Drop x) (ξ≗Drop y) ξx≤ξy
 ... | s≤s ξ'x≤ξ'y = OPE-refl-≤ ξ-OPE ξ'x≤ξ'y
+
+-------------------
+-- SUBSTITUTIONS --
+-------------------
+
+module _ {a} {A : Set a} where
+  _▸_ : (ℕ → A) → A → ℕ → A
+  (σ ▸ a) zero = a
+  (σ ▸ a) (suc x) = σ x
+
+  ▸-inj : ∀{σ1 σ2 e1 e2} → σ1 ▸ e1 ≗ σ2 ▸ e2 → σ1 ≗ σ2 × e1 ≡ e2
+  ▸-inj p = p ∘ suc , p zero
+
+  ▸-ext : ∀{σ1 σ2 e1 e2} → σ1 ≗ σ2 → e1 ≡ e2 → σ1 ▸ e1 ≗ σ2 ▸ e2
+  ▸-ext p q zero = q
+  ▸-ext p q (suc x) = p x

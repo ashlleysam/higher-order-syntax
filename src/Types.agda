@@ -3,11 +3,12 @@
 open import Level renaming (_⊔_ to ℓ-max; suc to ℓ-suc; zero to ℓ-zero)
 open import Data.Product renaming (proj₁ to fst; proj₂ to snd) hiding (map)
 open import Data.Empty
-open import Data.Nat
+open import Data.Nat renaming (_≟_ to ≡-dec-ℕ)
 open import Data.Nat.Properties
 open import Data.List
 open import Data.List.Properties
 open import Data.Unit
+open import Data.Sum renaming (inj₁ to inl; inj₂ to inr)
 open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
@@ -538,3 +539,52 @@ Drop*-id•◦≗DropSub* σ (suc n) x =
   renTy suc (renTy (Drop* id n) (σ x))
     ≡⟨ cong (renTy suc) (Drop*-id•◦≗DropSub* σ n x) ⟩
   renTy suc (TyDropSub* σ n x) ∎
+
+-- Whether a variable occurs free in a type
+freeInTy : ℕ → Ty → Set
+freeInTyVec : ℕ → TyVec → Set
+
+freeInTy x (tyVar y) = x ≡ y
+freeInTy x (tyConstr s ts) = freeInTyVec x ts
+
+freeInTyVec x [] = ⊥
+freeInTyVec x ((t , k) ∷ ts) = freeInTy (k + x) t ⊎ freeInTyVec x ts
+
+?freeInTy : (x : ℕ) (t : Ty) → Dec (freeInTy x t)
+?freeInTyVec : (x : ℕ) (ts : TyVec) → Dec (freeInTyVec x ts)
+
+?freeInTy x (tyVar y) with ≡-dec-ℕ x y
+... | yes x≡y = yes x≡y
+... | no  x≢y = no x≢y
+?freeInTy x (tyConstr s ts) = ?freeInTyVec x ts
+
+?freeInTyVec x [] = no λ ()
+?freeInTyVec x ((t , k) ∷ ts)
+  with ?freeInTy (k + x) t | ?freeInTyVec x ts
+... | yes p | _     = yes (inl p)
+... | no ¬p | yes q = yes (inr q)
+... | no ¬p | no ¬q = no λ{ (inl p) → ¬p p ; (inr q) → ¬q q }
+
+notFreeInTy : ℕ → Ty → Set
+notFreeInTyVec : ℕ → TyVec → Set
+
+notFreeInTy x (tyVar y) = x ≢ y
+notFreeInTy x (tyConstr s ts) = notFreeInTyVec x ts
+
+notFreeInTyVec x [] = ⊤
+notFreeInTyVec x ((t , k) ∷ ts) = notFreeInTy (k + x) t × notFreeInTyVec x ts
+
+?notFreeInTy : (x : ℕ) (t : Ty) → Dec (notFreeInTy x t)
+?notFreeInTyVec : (x : ℕ) (ts : TyVec) → Dec (notFreeInTyVec x ts)
+
+?notFreeInTy x (tyVar y) with ≡-dec-ℕ x y
+... | yes x≡y = no λ x≢y → x≢y x≡y
+... | no  x≢y = yes x≢y
+?notFreeInTy x (tyConstr s ts) = ?notFreeInTyVec x ts
+
+?notFreeInTyVec x [] = yes tt
+?notFreeInTyVec x ((t , k) ∷ ts)
+  with ?notFreeInTy (k + x) t | ?notFreeInTyVec x ts
+... | yes p | yes q = yes (p , q)
+... | yes p | no ¬q = no λ{ (_ , q) → ¬q q }
+... | no ¬p | _     = no λ{ (p , _) → ¬p p }
