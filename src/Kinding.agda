@@ -645,8 +645,7 @@ and decreases by 1 all variables > k, effectively
 removing the variable k
 -}
 squash : ℕ → Ren
-squash zero = pred
-squash (suc k) = Keep (squash k)
+squash k = Keep* pred k
 
 Keep*-squash : ∀{i} (k : ℕ) →
                squash (k + i) ≗
@@ -661,11 +660,11 @@ removeIdx [] i = []
 removeIdx (x ∷ xs) zero = xs
 removeIdx (x ∷ xs) (suc i) = x ∷ removeIdx xs i
 
-removeIdx-++ : ∀{Γ i} (Γ' : KndCtx) →
-                removeIdx (Γ' ++ Γ) (length Γ' + i) ≡
-                Γ' ++ removeIdx Γ i
+removeIdx-++ : ∀{a i} {A : Set a} (xs : List A) {ys : List A} →
+                removeIdx (xs ++ ys) (length xs + i) ≡
+                xs ++ removeIdx ys i
 removeIdx-++ [] = refl
-removeIdx-++ (κ ∷ Γ') = cong (κ ∷_) (removeIdx-++ Γ')
+removeIdx-++ (x ∷ xs) = cong (x ∷_) (removeIdx-++ xs)
 
 {-
 If a variable doesn't occur freely in a type,
@@ -704,3 +703,4 @@ then we can safely remove it from the context
     (renTy-ext (Keep*-squash (length Δ)) t)
     (⊢squashTy i∉t ⊢t)
   ⊢ₜ∷ ⊢squashTyVec i∉ts ⊢ts
+

@@ -541,30 +541,6 @@ Drop*-id•◦≗DropSub* σ (suc n) x =
   renTy suc (TyDropSub* σ n x) ∎
 
 -- Whether a variable occurs free in a type
-freeInTy : ℕ → Ty → Set
-freeInTyVec : ℕ → TyVec → Set
-
-freeInTy x (tyVar y) = x ≡ y
-freeInTy x (tyConstr s ts) = freeInTyVec x ts
-
-freeInTyVec x [] = ⊥
-freeInTyVec x ((t , k) ∷ ts) = freeInTy (k + x) t ⊎ freeInTyVec x ts
-
-?freeInTy : (x : ℕ) (t : Ty) → Dec (freeInTy x t)
-?freeInTyVec : (x : ℕ) (ts : TyVec) → Dec (freeInTyVec x ts)
-
-?freeInTy x (tyVar y) with ≡-dec-ℕ x y
-... | yes x≡y = yes x≡y
-... | no  x≢y = no x≢y
-?freeInTy x (tyConstr s ts) = ?freeInTyVec x ts
-
-?freeInTyVec x [] = no λ ()
-?freeInTyVec x ((t , k) ∷ ts)
-  with ?freeInTy (k + x) t | ?freeInTyVec x ts
-... | yes p | _     = yes (inl p)
-... | no ¬p | yes q = yes (inr q)
-... | no ¬p | no ¬q = no λ{ (inl p) → ¬p p ; (inr q) → ¬q q }
-
 notFreeInTy : ℕ → Ty → Set
 notFreeInTyVec : ℕ → TyVec → Set
 
@@ -572,7 +548,8 @@ notFreeInTy x (tyVar y) = x ≢ y
 notFreeInTy x (tyConstr s ts) = notFreeInTyVec x ts
 
 notFreeInTyVec x [] = ⊤
-notFreeInTyVec x ((t , k) ∷ ts) = notFreeInTy (k + x) t × notFreeInTyVec x ts
+notFreeInTyVec x ((t , k) ∷ ts) =
+  notFreeInTy (k + x) t × notFreeInTyVec x ts
 
 ?notFreeInTy : (x : ℕ) (t : Ty) → Dec (notFreeInTy x t)
 ?notFreeInTyVec : (x : ℕ) (ts : TyVec) → Dec (notFreeInTyVec x ts)

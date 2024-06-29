@@ -720,3 +720,32 @@ subVecι ξ ((e , m , n) ∷ es) =
       ≡⟨ subι (Keep* ξ n) e ⟩
     ren (Keep* ξ n) e ∎)
     (subVecι ξ es)
+
+notFreeTyInTm : ℕ → Tm → Set
+notFreeTyInTmVec : ℕ → TmVec → Set
+
+notFreeTyInTm x (var y) = ⊤
+notFreeTyInTm x (constr s ts es) =
+  notFreeInTyVec x ts ×
+  notFreeTyInTmVec x es
+
+notFreeTyInTmVec x [] = ⊤
+notFreeTyInTmVec x ((e , m , n) ∷ es) =
+  notFreeTyInTm (m + x) e × notFreeTyInTmVec x es
+
+?notFreeTyInTm : (x : ℕ) (t : Tm) → Dec (notFreeTyInTm x t)
+?notFreeTyInTmVec : (x : ℕ) (ts : TmVec) → Dec (notFreeTyInTmVec x ts)
+
+?notFreeTyInTm x (var y) = yes tt
+?notFreeTyInTm x (constr s ts es)
+  with ?notFreeInTyVec x ts | ?notFreeTyInTmVec x es
+... | yes p | yes q = yes (p , q)
+... | yes p | no ¬q = no λ{ (_ , q) → ¬q q }
+... | no ¬p | _     = no λ{ (p , _) → ¬p p }
+
+?notFreeTyInTmVec x [] = yes tt
+?notFreeTyInTmVec x ((e , m , n) ∷ es)
+  with ?notFreeTyInTm (m + x) e | ?notFreeTyInTmVec x es
+... | yes p | yes q = yes (p , q)
+... | yes p | no ¬q = no λ{ (_ , q) → ¬q q }
+... | no ¬p | _     = no λ{ (p , _) → ¬p p }
