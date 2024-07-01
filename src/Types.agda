@@ -158,19 +158,6 @@ TySub = ℕ → Ty
 ιₜId : ∀{ξ} → ξ ≗ id → ιₜ ξ ≗ tyVar
 ιₜId p x = cong tyVar (p x)
 
-_▸ₜ_ : TySub → Ty → TySub
-(σ ▸ₜ e) zero = e
-(σ ▸ₜ e) (suc x) = σ x
-
-addTySub = _▸ₜ_
-
-▸ₜ-inj : ∀{σ1 σ2 e1 e2} → σ1 ▸ₜ e1 ≗ σ2 ▸ₜ e2 → σ1 ≗ σ2 × e1 ≡ e2
-▸ₜ-inj p = p ∘ suc , p zero
-
-▸ₜ-ext : ∀{σ1 σ2 e1 e2} → σ1 ≗ σ2 → e1 ≡ e2 → σ1 ▸ₜ e1 ≗ σ2 ▸ₜ e2
-▸ₜ-ext p q zero = q
-▸ₜ-ext p q (suc x) = p x
-
 infixr 9 _•◦ₜ_
 _•◦ₜ_ : Ren → TySub → TySub
 (ξ •◦ₜ σ) x = renTy ξ (σ x)
@@ -196,13 +183,13 @@ Id•◦ₜ σ x = renTyId (σ x)
 •◦ₜId : (ξ : Ren) → ξ •◦ₜ tyVar ≗ ιₜ ξ
 •◦ₜId ξ x = refl
 
-•◦ₜ-▸ₜ : (ξ : Ren) (σ : TySub) (e : Ty) →
-          (ξ •◦ₜ (σ ▸ₜ e)) ≗ (ξ •◦ₜ σ) ▸ₜ renTy ξ e
-•◦ₜ-▸ₜ ξ σ e zero = refl
-•◦ₜ-▸ₜ ξ σ e (suc x) = refl     
+•◦ₜ-▸ : (ξ : Ren) (σ : TySub) (e : Ty) →
+          (ξ •◦ₜ (σ ▸ e)) ≗ (ξ •◦ₜ σ) ▸ renTy ξ e
+•◦ₜ-▸ ξ σ e zero = refl
+•◦ₜ-▸ ξ σ e (suc x) = refl     
 
 TyIgnoreSub : TySub → TySub
-TyIgnoreSub σ = σ ▸ₜ tyVar zero
+TyIgnoreSub σ = σ ▸ tyVar zero
 
 TyDropSub : TySub → TySub
 TyDropSub σ = Drop id •◦ₜ σ
@@ -219,10 +206,10 @@ TyDropSub*-ext p zero = p
 TyDropSub*-ext p (suc n) = TyDropSub-ext (TyDropSub*-ext p n)
 
 TyKeepSub : TySub → TySub
-TyKeepSub σ = TyDropSub σ ▸ₜ tyVar zero
+TyKeepSub σ = TyDropSub σ ▸ tyVar zero
 
 TyKeepSub-ext : ∀{σ1 σ2} → σ1 ≗ σ2 → TyKeepSub σ1 ≗ TyKeepSub σ2
-TyKeepSub-ext p = ▸ₜ-ext (TyDropSub-ext p) refl
+TyKeepSub-ext p = ▸-ext (TyDropSub-ext p) refl
 
 TyKeepSub-id : TyKeepSub tyVar ≗ tyVar
 TyKeepSub-id zero = refl
@@ -423,10 +410,10 @@ _◦ₜ_ : TySub → TySub → TySub
     ≡⟨ cong (subTy σ1') (q x) ⟩
   subTy σ1' (σ2' x) ∎
 
-◦ₜ-▸ₜ : (σ1 σ2 : TySub) (e : Ty) →
-        σ1 ◦ₜ (σ2 ▸ₜ e) ≗ (σ1 ◦ₜ σ2) ▸ₜ subTy σ1 e
-◦ₜ-▸ₜ σ1 σ2 e zero = refl
-◦ₜ-▸ₜ σ1 σ2 e (suc x) = refl
+◦ₜ-▸ : (σ1 σ2 : TySub) (e : Ty) →
+        σ1 ◦ₜ (σ2 ▸ e) ≗ (σ1 ◦ₜ σ2) ▸ subTy σ1 e
+◦ₜ-▸ σ1 σ2 e zero = refl
+◦ₜ-▸ σ1 σ2 e (suc x) = refl
 
 Keep◦ₜKeep : (σ1 σ2 : TySub) → TyKeepSub σ1 ◦ₜ TyKeepSub σ2 ≗ TyKeepSub (σ1 ◦ₜ σ2)
 Keep◦ₜKeep σ1 σ2 zero = refl
@@ -520,14 +507,14 @@ Keep*◦ₜDrop* σ1 σ2 (suc n) x =
     ≡⟨ TyDropSub-ext (Keep*◦ₜDrop* σ1 σ2 n) x ⟩
   TyDropSub (TyDropSub* (σ1 ◦ₜ σ2) n) x ∎
 
-▸ₜ-◦ₜ-Drop : (σ1 : TySub) (e : Ty) (σ2 : TySub) →
-             (σ1 ▸ₜ e) ◦ₜ TyDropSub σ2 ≗ σ1 ◦ₜ σ2
-▸ₜ-◦ₜ-Drop σ1 e σ2 x = subTy◦•ₜ (σ1 ▸ₜ e) suc (σ2 x)
+▸-◦ₜ-Drop : (σ1 : TySub) (e : Ty) (σ2 : TySub) →
+             (σ1 ▸ e) ◦ₜ TyDropSub σ2 ≗ σ1 ◦ₜ σ2
+▸-◦ₜ-Drop σ1 e σ2 x = subTy◦•ₜ (σ1 ▸ e) suc (σ2 x)
 
-▸ₜ-◦ₜ-Keep : (σ1 : TySub) (e : Ty) (σ2 : TySub) →
-             (σ1 ▸ₜ e) ◦ₜ TyKeepSub σ2 ≗ (σ1 ◦ₜ σ2) ▸ₜ e
-▸ₜ-◦ₜ-Keep σ1 e σ2 zero = refl  
-▸ₜ-◦ₜ-Keep σ1 e σ2 (suc x) = ▸ₜ-◦ₜ-Drop σ1 e σ2 x
+▸-◦ₜ-Keep : (σ1 : TySub) (e : Ty) (σ2 : TySub) →
+             (σ1 ▸ e) ◦ₜ TyKeepSub σ2 ≗ (σ1 ◦ₜ σ2) ▸ e
+▸-◦ₜ-Keep σ1 e σ2 zero = refl  
+▸-◦ₜ-Keep σ1 e σ2 (suc x) = ▸-◦ₜ-Drop σ1 e σ2 x
 
 Drop*-id•◦≗DropSub* :
   (σ : TySub) (n : ℕ) →
